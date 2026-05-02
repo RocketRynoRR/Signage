@@ -37,6 +37,7 @@
   let logos = [];
   let tagSettings = [];
   let currentIndex = -1;
+  let lastSlideId = null;
   let timerId;
   let exitSequence = "";
   let brandPalette = ["#0f766e", "#073b36", "#f6b453"];
@@ -781,11 +782,24 @@
 
     if (currentIndex === 0) {
       slides = shuffle(slides);
+      avoidImmediateRepeat();
     }
 
     const slide = slides[currentIndex];
+    lastSlideId = slide.id;
     showSlide(slide);
     scheduleNextSlide(slide);
+  }
+
+  function avoidImmediateRepeat() {
+    if (slides.length <= 1 || slides[0].id !== lastSlideId) {
+      return;
+    }
+
+    const swapIndex = slides.findIndex((slide) => slide.id !== lastSlideId);
+    if (swapIndex > 0) {
+      [slides[0], slides[swapIndex]] = [slides[swapIndex], slides[0]];
+    }
   }
 
   async function loadSlides() {
@@ -803,6 +817,7 @@
 
     showStatus("");
     slides = shuffle(data || []);
+    avoidImmediateRepeat();
     currentIndex = -1;
     showNextSlide();
   }
