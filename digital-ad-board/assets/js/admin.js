@@ -9,6 +9,9 @@
   const brandPrimaryInput = document.getElementById("brandPrimaryInput");
   const brandSecondaryInput = document.getElementById("brandSecondaryInput");
   const brandAccentInput = document.getElementById("brandAccentInput");
+  const brandPrimaryValue = document.getElementById("brandPrimaryValue");
+  const brandSecondaryValue = document.getElementById("brandSecondaryValue");
+  const brandAccentValue = document.getElementById("brandAccentValue");
   const boardPreview = document.getElementById("boardPreview");
   const signOutButton = document.getElementById("signOutButton");
   const slidesViewButton = document.getElementById("slidesViewButton");
@@ -80,6 +83,16 @@
     brandPrimaryInput.value = primary;
     brandSecondaryInput.value = secondary;
     brandAccentInput.value = accent;
+    brandPrimaryValue.textContent = primary;
+    brandSecondaryValue.textContent = secondary;
+    brandAccentValue.textContent = accent;
+
+    boardPreview.style.borderColor = primary;
+    boardPreview.style.background = `
+      linear-gradient(135deg, ${accent} 0 10%, transparent 10% 34%, ${primary} 34% 38%, transparent 38%),
+      linear-gradient(315deg, ${primary} 0 8%, transparent 8% 42%, ${accent} 42% 45%, transparent 45%),
+      ${secondary}
+    `;
   }
 
   async function loadBoardSettings() {
