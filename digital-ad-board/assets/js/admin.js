@@ -305,7 +305,7 @@
 
       const meta = document.createElement("div");
       meta.className = "slide-card-meta";
-      meta.textContent = `${slide.active ? "Active" : "Hidden"} | ${slide.duration_seconds || 8}s | ${slide.overlay_style || "bottom"}`;
+      meta.textContent = `${slide.active ? "Active" : "Hidden"} | ${slide.duration_seconds || 8}s | ${slide.overlay_style || "random"}`;
 
       const actions = document.createElement("div");
       actions.className = "slide-card-actions";
@@ -436,7 +436,7 @@
       header: String(formData.get("header") || "").trim(),
       caption: String(formData.get("caption") || "").trim(),
       duration_seconds: Number(formData.get("duration_seconds") || 8),
-      overlay_style: String(formData.get("overlay_style") || "bottom"),
+      overlay_style: String(formData.get("overlay_style") || "random"),
       active: formData.get("active") === "on"
     };
 
@@ -552,6 +552,7 @@
 
     slideForm.reset();
     document.getElementById("durationInput").value = 8;
+    document.getElementById("overlayInput").value = "random";
     document.getElementById("activeInput").checked = true;
     showMessage("Slide uploaded.", false);
     await loadSlides();

@@ -6,7 +6,7 @@ create table if not exists public.ad_board_slides (
   image_path text not null,
   header text,
   caption text,
-  overlay_style text not null default 'bottom'
+  overlay_style text not null default 'random'
     check (overlay_style in ('bottom', 'top-left', 'center', 'minimal', 'random')),
   duration_seconds integer not null default 8
     check (duration_seconds between 3 and 120),
@@ -40,6 +40,9 @@ create table if not exists public.ad_board_settings (
 
 alter table public.ad_board_settings
 add column if not exists brand_colours jsonb not null default '["#0f766e", "#073b36", "#f6b453"]'::jsonb;
+
+alter table public.ad_board_slides
+alter column overlay_style set default 'random';
 
 alter table public.ad_board_slides enable row level security;
 alter table public.ad_board_logos enable row level security;

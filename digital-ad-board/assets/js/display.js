@@ -20,6 +20,7 @@
 
   const config = window.AD_BOARD_SUPABASE;
   const slideFrame = document.getElementById("slideFrame");
+  const slideImageBox = document.getElementById("slideImageBox");
   const slideImage = document.getElementById("slideImage");
   const slideOverlay = document.getElementById("slideOverlay");
   const slideHeader = document.getElementById("slideHeader");
@@ -76,9 +77,18 @@
     slideFrame.classList.add(pickRandom(boardStyleClasses));
   }
 
-  function setRandomImageScale() {
-    const scaleOptions = [0.72, 0.78, 0.84, 0.9, 0.96];
-    slideFrame.style.setProperty("--slide-image-scale", String(pickRandom(scaleOptions)));
+  function setRandomImageBox() {
+    const boxOptions = [
+      { width: "62vw", height: "62vh" },
+      { width: "70vw", height: "66vh" },
+      { width: "78vw", height: "70vh" },
+      { width: "86vw", height: "76vh" },
+      { width: "92vw", height: "82vh" }
+    ];
+    const box = pickRandom(boxOptions);
+
+    slideImageBox.style.setProperty("--slide-box-width", box.width);
+    slideImageBox.style.setProperty("--slide-box-height", box.height);
   }
 
   function applyBoardColours(settings) {
@@ -124,7 +134,7 @@
       slideHeader.textContent = header;
       slideCaption.textContent = caption;
       setRandomBoardStyle();
-      setRandomImageScale();
+      setRandomImageBox();
       setOverlayStyle(slide.overlay_style);
 
       slideImage.classList.add("is-visible");
