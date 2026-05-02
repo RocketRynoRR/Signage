@@ -104,41 +104,42 @@
   }
 
   function applySafeImageBox() {
-    const zone = currentImageZone || pickImageZone(currentOverlayClass);
-    currentImageZone = zone;
-
-    const zoneWidth = Math.max(180, zone.right - zone.left);
-    const zoneHeight = Math.max(180, zone.bottom - zone.top);
-    const scale = pickRandom(zone.scales);
-    let boxWidth = Math.floor(zoneWidth * scale);
-    let boxHeight = Math.floor(zoneHeight * scale);
-    const minWidth = Math.min(Math.max(520, window.innerWidth * 0.34), window.innerWidth * 0.72);
-    const minHeight = Math.min(Math.max(300, window.innerHeight * 0.34), window.innerHeight * 0.72);
+    const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    const logoClearanceX = slideLogo.classList.contains("is-visible")
+      ? Math.max(260, slideLogo.getBoundingClientRect().width + margin * 2)
+      : 0;
+    const availableWidth = Math.max(320, window.innerWidth - margin * 2 - logoClearanceX * 0.45);
+    const availableHeight = Math.max(260, window.innerHeight - margin * 2);
+    let boxWidth = Math.floor(availableWidth * pickRandom([0.8, 0.86, 0.92, 0.96]));
+    let boxHeight = Math.floor(availableHeight * pickRandom([0.8, 0.86, 0.92, 0.96]));
 
     if (slideImage.naturalWidth && slideImage.naturalHeight) {
       const imageRatio = slideImage.naturalWidth / slideImage.naturalHeight;
-      const boxRatio = boxWidth / boxHeight;
 
-      if (imageRatio > boxRatio) {
+      if (imageRatio >= 1) {
+        boxWidth = Math.max(window.innerWidth * 0.8, boxWidth);
+        boxWidth = Math.min(boxWidth, availableWidth);
         boxHeight = Math.floor(boxWidth / imageRatio);
-      } else {
-        boxWidth = Math.floor(boxHeight * imageRatio);
-      }
 
-      if (boxWidth < minWidth && boxHeight < minHeight) {
-        if (imageRatio >= 1) {
-          boxWidth = Math.min(zoneWidth, minWidth);
-          boxHeight = Math.floor(boxWidth / imageRatio);
-        } else {
-          boxHeight = Math.min(zoneHeight, minHeight);
+        if (boxHeight > availableHeight) {
+          boxHeight = availableHeight;
           boxWidth = Math.floor(boxHeight * imageRatio);
+        }
+      } else {
+        boxHeight = Math.max(window.innerHeight * 0.8, boxHeight);
+        boxHeight = Math.min(boxHeight, availableHeight);
+        boxWidth = Math.floor(boxHeight * imageRatio);
+
+        if (boxWidth > availableWidth) {
+          boxWidth = availableWidth;
+          boxHeight = Math.floor(boxWidth / imageRatio);
         }
       }
     }
 
     slideImageBox.style.setProperty("--slide-box-width", `${boxWidth}px`);
     slideImageBox.style.setProperty("--slide-box-height", `${boxHeight}px`);
-    placeImageBox(boxWidth, boxHeight, zone);
+    placeImageBox(boxWidth, boxHeight, currentImageZone);
   }
 
   function clamp(value, min, max) {
@@ -170,10 +171,10 @@
     const margin = Math.max(28, Math.round(Math.min(width, height) * 0.035));
     const logoClearance = Math.max(190, width * 0.18);
     const centreZones = [
-      makeZone(width * 0.18, height * 0.14, width * 0.82, height * 0.72, [0.72, 0.82, 0.94]),
-      makeZone(width * 0.24, height * 0.18, width * 0.76, height * 0.78, [0.78, 0.9, 1]),
-      makeZone(width * 0.14, height * 0.2, width * 0.72, height * 0.74, [0.76, 0.88, 1]),
-      makeZone(width * 0.28, height * 0.16, width * 0.86, height * 0.72, [0.72, 0.84, 0.96])
+      makeZone(width * 0.14, height * 0.12, width * 0.86, height * 0.82, [1]),
+      makeZone(width * 0.18, height * 0.16, width * 0.82, height * 0.86, [1]),
+      makeZone(width * 0.1, height * 0.18, width * 0.8, height * 0.82, [1]),
+      makeZone(width * 0.2, height * 0.12, width * 0.9, height * 0.78, [1])
     ];
     const zonesByOverlay = {
       "overlay-bottom": [
@@ -203,10 +204,20 @@
 
   function placeImageBox(boxWidth, boxHeight, zone) {
     const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
-    const maxLeft = Math.max(zone.left, zone.right - boxWidth);
-    const maxTop = Math.max(zone.top, zone.bottom - boxHeight);
-    const left = clamp(randomBetween(zone.left, maxLeft), margin, window.innerWidth - boxWidth - margin);
-    const top = clamp(randomBetween(zone.top, maxTop), margin, window.innerHeight - boxHeight - margin);
+    const centerLeft = (window.innerWidth - boxWidth) / 2;
+    const centerTop = (window.innerHeight - boxHeight) / 2;
+    const wiggleX = Math.max(18, (window.innerWidth - boxWidth) * 0.16);
+    const wiggleY = Math.max(18, (window.innerHeight - boxHeight) * 0.14);
+    let left = randomBetween(centerLeft - wiggleX, centerLeft + wiggleX);
+    let top = randomBetween(centerTop - wiggleY, centerTop + wiggleY);
+
+    if (zone) {
+      left = clamp(left, zone.left, Math.max(zone.left, zone.right - boxWidth));
+      top = clamp(top, zone.top, Math.max(zone.top, zone.bottom - boxHeight));
+    }
+
+    left = clamp(left, margin, window.innerWidth - boxWidth - margin);
+    top = clamp(top, margin, window.innerHeight - boxHeight - margin);
 
     slideImageBox.style.left = `${Math.round(left)}px`;
     slideImageBox.style.top = `${Math.round(top)}px`;
