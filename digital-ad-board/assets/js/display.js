@@ -37,9 +37,9 @@
   let currentIndex = -1;
   let timerId;
   let exitSequence = "";
-  let currentBoxScale = 0.86;
   let brandPalette = ["#0f766e", "#073b36", "#f6b453"];
   let currentOverlayClass = "overlay-bottom";
+  let currentImageZone = null;
 
   function showStatus(message) {
     statusBanner.textContent = message;
@@ -71,7 +71,7 @@
   }
 
   function setOverlayStyle(style) {
-    slideOverlay.classList.remove(...overlayClasses);
+    slideOverlay.classList.remove(...overlayClasses, "caption-over-image", "logo-avoid-left");
     const overlayClass = getOverlayClass(style);
     slideOverlay.classList.add(overlayClass);
     currentOverlayClass = overlayClass;
@@ -99,17 +99,21 @@
 
   function setRandomImageBox(overlayClass) {
     currentOverlayClass = overlayClass || currentOverlayClass;
-    currentBoxScale = pickRandom([0.5, 0.58, 0.66, 0.74, 0.82]);
+    currentImageZone = pickImageZone(currentOverlayClass);
     applySafeImageBox();
   }
 
   function applySafeImageBox() {
-    const safeMarginX = Math.max(88, Math.round(window.innerWidth * 0.1));
-    const safeMarginY = Math.max(130, Math.round(window.innerHeight * 0.22));
-    const availableWidth = Math.max(220, window.innerWidth - safeMarginX);
-    const availableHeight = Math.max(220, window.innerHeight - safeMarginY);
-    let boxWidth = Math.floor(availableWidth * currentBoxScale);
-    let boxHeight = Math.floor(availableHeight * currentBoxScale);
+    const zone = currentImageZone || pickImageZone(currentOverlayClass);
+    currentImageZone = zone;
+
+    const zoneWidth = Math.max(180, zone.right - zone.left);
+    const zoneHeight = Math.max(180, zone.bottom - zone.top);
+    const scale = pickRandom(zone.scales);
+    let boxWidth = Math.floor(zoneWidth * scale);
+    let boxHeight = Math.floor(zoneHeight * scale);
+    const minWidth = Math.min(Math.max(520, window.innerWidth * 0.34), window.innerWidth * 0.72);
+    const minHeight = Math.min(Math.max(300, window.innerHeight * 0.34), window.innerHeight * 0.72);
 
     if (slideImage.naturalWidth && slideImage.naturalHeight) {
       const imageRatio = slideImage.naturalWidth / slideImage.naturalHeight;
@@ -120,59 +124,180 @@
       } else {
         boxWidth = Math.floor(boxHeight * imageRatio);
       }
+
+      if (boxWidth < minWidth && boxHeight < minHeight) {
+        if (imageRatio >= 1) {
+          boxWidth = Math.min(zoneWidth, minWidth);
+          boxHeight = Math.floor(boxWidth / imageRatio);
+        } else {
+          boxHeight = Math.min(zoneHeight, minHeight);
+          boxWidth = Math.floor(boxHeight * imageRatio);
+        }
+      }
     }
 
     slideImageBox.style.setProperty("--slide-box-width", `${boxWidth}px`);
     slideImageBox.style.setProperty("--slide-box-height", `${boxHeight}px`);
-    placeImageBox(boxWidth, boxHeight, currentOverlayClass);
+    placeImageBox(boxWidth, boxHeight, zone);
   }
 
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
   }
 
-  function placeImageBox(boxWidth, boxHeight, overlayClass) {
-    const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
-    const maxLeft = Math.max(margin, window.innerWidth - boxWidth - margin);
-    const maxTop = Math.max(margin, window.innerHeight - boxHeight - margin);
-    const centerLeft = (window.innerWidth - boxWidth) / 2;
-    const centerTop = (window.innerHeight - boxHeight) / 2;
-    const topSafe = margin + Math.max(96, window.innerHeight * 0.08);
-    const bottomSafe = Math.max(margin, window.innerHeight - boxHeight - Math.max(170, window.innerHeight * 0.28));
-    const rightSafe = Math.max(margin, window.innerWidth - boxWidth - Math.max(120, window.innerWidth * 0.1));
+  function randomBetween(min, max) {
+    if (max <= min) {
+      return min;
+    }
 
-    const positionsByOverlay = {
+    return min + Math.random() * (max - min);
+  }
+
+  function makeZone(left, top, right, bottom, scales) {
+    const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    return {
+      left: clamp(left, margin, window.innerWidth - margin),
+      top: clamp(top, margin, window.innerHeight - margin),
+      right: clamp(right, margin, window.innerWidth - margin),
+      bottom: clamp(bottom, margin, window.innerHeight - margin),
+      scales
+    };
+  }
+
+  function pickImageZone(overlayClass) {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const margin = Math.max(28, Math.round(Math.min(width, height) * 0.035));
+    const logoClearance = Math.max(190, width * 0.18);
+    const centreZones = [
+      makeZone(width * 0.18, height * 0.14, width * 0.82, height * 0.72, [0.72, 0.82, 0.94]),
+      makeZone(width * 0.24, height * 0.18, width * 0.76, height * 0.78, [0.78, 0.9, 1]),
+      makeZone(width * 0.14, height * 0.2, width * 0.72, height * 0.74, [0.76, 0.88, 1]),
+      makeZone(width * 0.28, height * 0.16, width * 0.86, height * 0.72, [0.72, 0.84, 0.96])
+    ];
+    const zonesByOverlay = {
       "overlay-bottom": [
-        { left: margin, top: margin },
-        { left: centerLeft, top: margin },
-        { left: rightSafe, top: margin },
-        { left: centerLeft, top: bottomSafe }
+        ...centreZones,
+        makeZone(width * 0.22, margin, width * 0.78, height * 0.64, [0.78, 0.9, 1]),
+        makeZone(width * 0.34, margin + logoClearance * 0.2, width * 0.88, height * 0.62, [0.74, 0.86, 0.98])
       ],
       "overlay-top-left": [
-        { left: rightSafe, top: centerTop },
-        { left: rightSafe, top: maxTop },
-        { left: centerLeft, top: maxTop },
-        { left: Math.max(window.innerWidth * 0.44, margin), top: topSafe }
+        makeZone(width * 0.34, height * 0.26, width * 0.88, height * 0.82, [0.78, 0.9, 1]),
+        makeZone(width * 0.26, height * 0.38, width * 0.84, height * 0.86, [0.76, 0.88, 1]),
+        makeZone(width * 0.44, margin + logoClearance * 0.35, width * 0.9, height * 0.76, [0.74, 0.86, 0.98])
       ],
       "overlay-center": [
-        { left: margin, top: margin },
-        { left: rightSafe, top: margin },
-        { left: margin, top: maxTop },
-        { left: rightSafe, top: maxTop }
+        makeZone(width * 0.14, height * 0.12, width * 0.5, height * 0.5, [0.9, 1]),
+        makeZone(width * 0.5, height * 0.12 + logoClearance * 0.1, width * 0.86, height * 0.5, [0.84, 0.96, 1]),
+        makeZone(width * 0.14, height * 0.5, width * 0.5, height * 0.88, [0.88, 1]),
+        makeZone(width * 0.5, height * 0.5, width * 0.86, height * 0.88, [0.86, 0.98, 1])
       ],
       "overlay-minimal": [
-        { left: margin, top: margin },
-        { left: centerLeft, top: margin },
-        { left: margin, top: centerTop },
-        { left: margin, top: maxTop }
+        ...centreZones,
+        makeZone(width * 0.18, margin, width * 0.76, height * 0.6, [0.78, 0.9, 1]),
+        makeZone(width * 0.16, height * 0.3, width * 0.72, height * 0.84, [0.76, 0.88, 1])
       ]
     };
-    const position = pickRandom(positionsByOverlay[overlayClass] || positionsByOverlay["overlay-bottom"]);
-    const left = clamp(position.left, margin, maxLeft);
-    const top = clamp(position.top, margin, maxTop);
+    return pickRandom(zonesByOverlay[overlayClass] || zonesByOverlay["overlay-bottom"]);
+  }
+
+  function placeImageBox(boxWidth, boxHeight, zone) {
+    const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    const maxLeft = Math.max(zone.left, zone.right - boxWidth);
+    const maxTop = Math.max(zone.top, zone.bottom - boxHeight);
+    const left = clamp(randomBetween(zone.left, maxLeft), margin, window.innerWidth - boxWidth - margin);
+    const top = clamp(randomBetween(zone.top, maxTop), margin, window.innerHeight - boxHeight - margin);
 
     slideImageBox.style.left = `${Math.round(left)}px`;
     slideImageBox.style.top = `${Math.round(top)}px`;
+  }
+
+  function getPaddedRect(element, padding) {
+    const rect = element.getBoundingClientRect();
+
+    return {
+      left: rect.left - padding,
+      top: rect.top - padding,
+      right: rect.right + padding,
+      bottom: rect.bottom + padding,
+      width: rect.width + padding * 2,
+      height: rect.height + padding * 2
+    };
+  }
+
+  function rectsOverlap(first, second) {
+    return first.left < second.right &&
+      first.right > second.left &&
+      first.top < second.bottom &&
+      first.bottom > second.top;
+  }
+
+  function moveImageAwayFromLogo() {
+    if (!slideLogo.classList.contains("is-visible")) {
+      return;
+    }
+
+    const padding = Math.max(18, window.innerWidth * 0.015);
+    const logoRect = getPaddedRect(slideLogo, padding);
+    let imageRect = getPaddedRect(slideImageBox, padding);
+
+    if (!rectsOverlap(imageRect, logoRect)) {
+      return;
+    }
+
+    const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    const currentTop = parseFloat(slideImageBox.style.top || "0");
+    const currentLeft = parseFloat(slideImageBox.style.left || "0");
+    const leftCandidate = Math.max(margin, logoRect.left - imageRect.width - padding);
+    const lowerCandidate = Math.min(window.innerHeight - imageRect.height - margin, logoRect.bottom + padding);
+
+    if (leftCandidate > margin) {
+      slideImageBox.style.left = `${Math.round(leftCandidate)}px`;
+    } else if (lowerCandidate > currentTop) {
+      slideImageBox.style.top = `${Math.round(lowerCandidate)}px`;
+    } else {
+      slideImageBox.style.left = `${Math.round(Math.max(margin, currentLeft - imageRect.width * 0.2))}px`;
+    }
+
+    imageRect = getPaddedRect(slideImageBox, padding);
+
+    if (rectsOverlap(imageRect, logoRect)) {
+      const width = Math.max(360, imageRect.width * 0.82);
+      const height = Math.max(240, imageRect.height * 0.82);
+      slideImageBox.style.setProperty("--slide-box-width", `${Math.round(width)}px`);
+      slideImageBox.style.setProperty("--slide-box-height", `${Math.round(height)}px`);
+      slideImageBox.style.left = `${Math.round(Math.max(margin, logoRect.left - width - padding))}px`;
+    }
+  }
+
+  function resolveCaptionCollisions() {
+    slideOverlay.classList.remove("caption-over-image", "logo-avoid-left");
+
+    if (!slideOverlay.classList.contains("is-visible")) {
+      return;
+    }
+
+    const padding = Math.max(18, window.innerWidth * 0.014);
+    const logoVisible = slideLogo.classList.contains("is-visible");
+    const logoRect = logoVisible ? getPaddedRect(slideLogo, padding) : null;
+
+    if (logoRect && rectsOverlap(getPaddedRect(slideOverlay, padding), logoRect)) {
+      slideOverlay.classList.add("logo-avoid-left");
+    }
+
+    const overlayRect = getPaddedRect(slideOverlay, padding);
+    const imageRect = getPaddedRect(slideImageBox, padding);
+
+    if (rectsOverlap(overlayRect, imageRect)) {
+      slideOverlay.classList.add("caption-over-image");
+    }
+  }
+
+  function resolveLayoutCollisions() {
+    window.requestAnimationFrame(() => {
+      moveImageAwayFromLogo();
+      resolveCaptionCollisions();
+    });
   }
 
   function applyBoardColours(settings) {
@@ -205,6 +330,7 @@
     slideOverlay.classList.remove("is-visible");
     slideImage.classList.remove("is-visible");
     slideLogo.classList.remove("is-visible");
+    currentImageZone = null;
 
     window.setTimeout(() => {
       slideImage.onload = applySafeImageBox;
@@ -219,6 +345,7 @@
       slideImage.classList.add("is-visible");
       slideOverlay.classList.toggle("is-visible", Boolean(header || caption));
       showLogo(logo);
+      resolveLayoutCollisions();
       emptyState.hidden = true;
     }, 250);
   }
@@ -233,6 +360,7 @@
     slideLogo.src = getPublicImageUrl(logo.image_path);
     slideLogo.alt = logo.name || "Logo";
     slideLogo.classList.add("is-visible");
+    slideLogo.onload = resolveLayoutCollisions;
   }
 
   function scheduleNextSlide(slide) {
@@ -330,7 +458,10 @@
       }
     });
 
-    window.addEventListener("resize", applySafeImageBox);
+    window.addEventListener("resize", () => {
+      applySafeImageBox();
+      resolveLayoutCollisions();
+    });
   }
 
   async function init() {

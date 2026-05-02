@@ -113,10 +113,10 @@ textarea {
 
 .board-style-waves {
   background:
-    radial-gradient(ellipse at 20% 120%, transparent 0 38%, var(--brand-matte) 38.5% 44%, transparent 44.5%),
-    radial-gradient(ellipse at 78% -20%, transparent 0 34%, var(--brand-matte-warm) 34.5% 40%, transparent 40.5%),
-    radial-gradient(ellipse at 110% 50%, transparent 0 28%, var(--brand-matte-extra) 28.5% 33%, transparent 33.5%),
-    repeating-radial-gradient(ellipse at center, var(--brand-matte-dark) 0 34px, var(--brand-matte-dark) 34px 68px, var(--brand-matte) 68px 74px, var(--brand-matte-dark) 74px 110px);
+    radial-gradient(ellipse at 18% 112%, transparent 0 42%, var(--brand-matte) 42.5% 45.5%, transparent 46%),
+    radial-gradient(ellipse at 82% -14%, transparent 0 38%, var(--brand-matte-warm) 38.5% 41.5%, transparent 42%),
+    radial-gradient(ellipse at 108% 54%, transparent 0 34%, var(--brand-matte-extra) 34.5% 37.5%, transparent 38%),
+    repeating-radial-gradient(ellipse at center, var(--brand-matte-dark) 0 42px, var(--brand-matte-dark) 42px 92px, var(--brand-matte) 92px 96px, var(--brand-matte-dark) 96px 140px);
 }
 
 .board-style-confetti {
@@ -211,7 +211,20 @@ textarea {
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
   opacity: 0;
   transform: translateY(10px);
-  transition: opacity 500ms ease, transform 500ms ease;
+  transition: opacity 500ms ease, transform 500ms ease, background 300ms ease;
+}
+
+.slide-overlay.caption-over-image {
+  background: rgba(0, 0, 0, 0.24);
+  backdrop-filter: none;
+}
+
+.slide-overlay.logo-avoid-left {
+  left: clamp(18px, 3vw, 44px);
+  right: auto;
+  top: clamp(18px, 3vw, 44px);
+  bottom: auto;
+  max-width: min(620px, 58vw);
 }
 
 .slide-overlay.is-visible {
