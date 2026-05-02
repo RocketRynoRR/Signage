@@ -25,7 +25,17 @@
   let supabaseClient;
   let brandColours = ["#0f766e", "#073b36", "#f6b453"];
 
+  function safeOn(element, eventName, handler) {
+    if (element) {
+      element.addEventListener(eventName, handler);
+    }
+  }
+
   function showMessage(message, isError) {
+    if (!messageArea) {
+      return;
+    }
+
     messageArea.innerHTML = "";
 
     if (!message) {
@@ -63,9 +73,11 @@
     signOutButton.hidden = !signedIn;
 
     if (signedIn) {
-      await loadSlides();
-      await loadLogos();
-      await loadBoardSettings();
+      await Promise.all([
+        loadSlides(),
+        loadLogos(),
+        loadBoardSettings()
+      ]);
     }
   }
 
@@ -99,16 +111,23 @@
     document.documentElement.style.setProperty("--brand-matte", primary);
     document.documentElement.style.setProperty("--brand-matte-dark", secondary);
     document.documentElement.style.setProperty("--brand-matte-warm", accent);
-    boardPreview.style.borderColor = primary;
-    boardPreview.style.background = `
-      linear-gradient(135deg, ${accent} 0 10%, transparent 10% 34%, ${primary} 34% 38%, transparent 38%),
-      linear-gradient(315deg, ${primary} 0 8%, transparent 8% 42%, ${accent} 42% 45%, transparent 45%),
-      ${secondary}
-    `;
+    if (boardPreview) {
+      boardPreview.style.borderColor = primary;
+      boardPreview.style.background = `
+        linear-gradient(135deg, ${accent} 0 10%, transparent 10% 34%, ${primary} 34% 38%, transparent 38%),
+        linear-gradient(315deg, ${primary} 0 8%, transparent 8% 42%, ${accent} 42% 45%, transparent 45%),
+        ${secondary}
+      `;
+    }
+
     renderBrandColourList();
   }
 
   function renderBrandColourList() {
+    if (!brandColourList) {
+      return;
+    }
+
     brandColourList.innerHTML = "";
 
     brandColours.forEach((colour, index) => {
@@ -648,16 +667,16 @@
     }
 
     supabaseClient = window.supabase.createClient(config.url, config.anonKey);
-    loginForm.addEventListener("submit", signIn);
-    slideForm.addEventListener("submit", uploadSlide);
-    logoForm.addEventListener("submit", uploadLogo);
-    boardSettingsForm.addEventListener("submit", saveBoardSettings);
-    addBrandColourButton.addEventListener("click", addBrandColour);
-    signOutButton.addEventListener("click", signOut);
-    slidesViewButton.addEventListener("click", () => showAdminView("slides"));
-    settingsViewButton.addEventListener("click", () => showAdminView("settings"));
-    refreshButton.addEventListener("click", loadSlides);
-    refreshLogosButton.addEventListener("click", loadLogos);
+    safeOn(loginForm, "submit", signIn);
+    safeOn(slideForm, "submit", uploadSlide);
+    safeOn(logoForm, "submit", uploadLogo);
+    safeOn(boardSettingsForm, "submit", saveBoardSettings);
+    safeOn(addBrandColourButton, "click", addBrandColour);
+    safeOn(signOutButton, "click", signOut);
+    safeOn(slidesViewButton, "click", () => showAdminView("slides"));
+    safeOn(settingsViewButton, "click", () => showAdminView("settings"));
+    safeOn(refreshButton, "click", loadSlides);
+    safeOn(refreshLogosButton, "click", loadLogos);
     setSignedInState();
   }
 
