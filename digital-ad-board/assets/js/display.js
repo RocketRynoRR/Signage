@@ -77,6 +77,8 @@
   function setOverlayStyle(style) {
     slideOverlay.classList.remove(...overlayClasses, "caption-over-image", "logo-avoid-left");
     slideOverlay.removeAttribute("style");
+    slideHeader.removeAttribute("style");
+    slideCaption.removeAttribute("style");
     const overlayClass = getOverlayClass(style);
     slideOverlay.classList.add(overlayClass);
     currentOverlayClass = overlayClass;
@@ -113,17 +115,16 @@
     const logoClearanceX = slideLogo.classList.contains("is-visible")
       ? Math.max(260, slideLogo.getBoundingClientRect().width + margin * 2)
       : 0;
-    const availableWidth = Math.max(320, window.innerWidth - margin * 2 - logoClearanceX * 0.45);
-    const availableHeight = Math.max(260, window.innerHeight - margin * 2);
-    let boxWidth = Math.floor(availableWidth * pickRandom([0.8, 0.86, 0.92, 0.96]));
-    let boxHeight = Math.floor(availableHeight * pickRandom([0.8, 0.86, 0.92, 0.96]));
+    const availableWidth = Math.max(260, window.innerWidth - margin * 2 - logoClearanceX * 0.45);
+    const availableHeight = Math.max(220, window.innerHeight - margin * 2);
+    let boxWidth = Math.floor(availableWidth * 0.86);
+    let boxHeight = Math.floor(availableHeight * 0.86);
 
     if (slideImage.naturalWidth && slideImage.naturalHeight) {
       const imageRatio = slideImage.naturalWidth / slideImage.naturalHeight;
 
       if (imageRatio >= 1) {
-        boxWidth = Math.max(window.innerWidth * 0.8, boxWidth);
-        boxWidth = Math.min(boxWidth, availableWidth);
+        boxWidth = Math.min(Math.max(window.innerWidth * 0.8, boxWidth), availableWidth);
         boxHeight = Math.floor(boxWidth / imageRatio);
 
         if (boxHeight > availableHeight) {
@@ -131,8 +132,7 @@
           boxWidth = Math.floor(boxHeight * imageRatio);
         }
       } else {
-        boxHeight = Math.max(window.innerHeight * 0.8, boxHeight);
-        boxHeight = Math.min(boxHeight, availableHeight);
+        boxHeight = Math.min(Math.max(window.innerHeight * 0.8, boxHeight), availableHeight);
         boxWidth = Math.floor(boxHeight * imageRatio);
 
         if (boxWidth > availableWidth) {
@@ -144,6 +144,8 @@
 
     boxWidth = Math.min(boxWidth, window.innerWidth - margin * 2);
     boxHeight = Math.min(boxHeight, window.innerHeight - margin * 2);
+    slideImage.style.objectFit = "contain";
+    slideImage.style.objectPosition = "center center";
     slideImageBox.style.setProperty("--slide-box-width", `${boxWidth}px`);
     slideImageBox.style.setProperty("--slide-box-height", `${boxHeight}px`);
     placeImageBox(boxWidth, boxHeight, currentImageZone);
@@ -314,11 +316,36 @@
       return;
     }
 
+    fitCaptionTextToBox();
     const padding = Math.max(18, window.innerWidth * 0.014);
     const logoVisible = slideLogo.classList.contains("is-visible");
     const logoRect = logoVisible ? getPaddedRect(slideLogo, padding) : null;
     const placed = placeCaptionWithoutOverlap(logoRect, padding);
     slideOverlay.classList.toggle("is-visible", placed);
+  }
+
+  function fitCaptionTextToBox() {
+    const margin = Math.max(36, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.04));
+    const maxWidth = Math.max(260, window.innerWidth - margin * 2);
+    const maxHeight = Math.max(180, window.innerHeight - margin * 2);
+
+    slideOverlay.style.maxWidth = `${Math.round(Math.min(760, maxWidth))}px`;
+    slideOverlay.style.maxHeight = `${Math.round(maxHeight)}px`;
+    slideHeader.removeAttribute("style");
+    slideCaption.removeAttribute("style");
+
+    let attempts = 0;
+    while (
+      attempts < 8 &&
+      (slideOverlay.scrollWidth > slideOverlay.clientWidth + 1 ||
+        slideOverlay.scrollHeight > slideOverlay.clientHeight + 1)
+    ) {
+      const headerSize = parseFloat(window.getComputedStyle(slideHeader).fontSize);
+      const captionSize = parseFloat(window.getComputedStyle(slideCaption).fontSize);
+      slideHeader.style.fontSize = `${Math.max(24, headerSize * 0.88)}px`;
+      slideCaption.style.fontSize = `${Math.max(16, captionSize * 0.88)}px`;
+      attempts += 1;
+    }
   }
 
   function getActiveImageElement() {
@@ -348,6 +375,7 @@
     );
     slideOverlay.classList.remove(...overlayClasses);
     slideOverlay.style.maxWidth = `${Math.round(Math.min(760, window.innerWidth - margin * 2))}px`;
+    slideOverlay.style.maxHeight = `${Math.round(window.innerHeight - margin * 2)}px`;
     slideOverlay.style.right = "auto";
     slideOverlay.style.bottom = "auto";
     slideOverlay.style.transform = "none";
@@ -424,7 +452,25 @@
     };
 
     if (logoRect && rectsOverlap(emergencyRect, logoRect)) {
-      return false;
+      const topLeft = {
+        left: margin,
+        top: margin,
+        right: margin + overlayRect.width,
+        bottom: margin + overlayRect.height,
+        width: overlayRect.width,
+        height: overlayRect.height
+      };
+
+      if (rectsOverlap(topLeft, logoRect) || !rectIsInsideViewport(topLeft, margin)) {
+        return false;
+      }
+
+      slideOverlay.style.left = `${Math.round(topLeft.left)}px`;
+      slideOverlay.style.top = `${Math.round(topLeft.top)}px`;
+      slideOverlay.style.right = "auto";
+      slideOverlay.style.bottom = "auto";
+      slideOverlay.style.transform = "none";
+      return true;
     }
 
     slideOverlay.style.left = `${Math.round(left)}px`;
@@ -488,7 +534,10 @@
         slideImageBox.hidden = true;
       } else {
         slideImageBox.hidden = false;
-        slideImage.onload = applySafeImageBox;
+        slideImage.onload = () => {
+          applySafeImageBox();
+          resolveLayoutCollisions();
+        };
         slideImage.src = imageUrl;
         slideImage.alt = header || caption || "Advert slide";
       }
@@ -501,7 +550,11 @@
       if (slideSet.length > 1) {
         positionSlideGroup(overlayClass);
       } else {
-        setRandomImageBox(overlayClass);
+        currentOverlayClass = overlayClass;
+        currentImageZone = pickImageZone(currentOverlayClass);
+        if (slideImage.complete && slideImage.naturalWidth) {
+          applySafeImageBox();
+        }
       }
 
       slideImage.classList.toggle("is-visible", slideSet.length === 1);
@@ -563,6 +616,8 @@
       const image = document.createElement("img");
       image.src = getPublicImageUrl(slide.image_path);
       image.alt = slide.header || slide.caption || "Advert slide";
+      image.decoding = "async";
+      image.onload = resolveLayoutCollisions;
 
       card.appendChild(image);
       slideGroup.appendChild(card);
@@ -587,6 +642,9 @@
     width = Math.min(maxWidth, height * groupRatio);
     height = Math.min(maxHeight, width / groupRatio);
 
+    width = Math.min(width, window.innerWidth - margin * 2);
+    height = Math.min(height, window.innerHeight - margin * 2);
+
     slideGroup.style.width = `${Math.round(width)}px`;
     slideGroup.style.height = `${Math.round(height)}px`;
     slideGroup.style.left = "50%";
@@ -602,15 +660,25 @@
   function clampSlideGroupInsideViewport() {
     const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
     const rect = slideGroup.getBoundingClientRect();
+    if (rect.width > window.innerWidth - margin * 2 || rect.height > window.innerHeight - margin * 2) {
+      const scale = Math.min(
+        (window.innerWidth - margin * 2) / rect.width,
+        (window.innerHeight - margin * 2) / rect.height
+      );
+      slideGroup.style.width = `${Math.floor(rect.width * scale)}px`;
+      slideGroup.style.height = `${Math.floor(rect.height * scale)}px`;
+    }
+
+    const nextRect = slideGroup.getBoundingClientRect();
     const centerX = clamp(
-      rect.left + rect.width / 2,
-      margin + rect.width / 2,
-      window.innerWidth - margin - rect.width / 2
+      nextRect.left + nextRect.width / 2,
+      margin + nextRect.width / 2,
+      window.innerWidth - margin - nextRect.width / 2
     );
     const centerY = clamp(
-      rect.top + rect.height / 2,
-      margin + rect.height / 2,
-      window.innerHeight - margin - rect.height / 2
+      nextRect.top + nextRect.height / 2,
+      margin + nextRect.height / 2,
+      window.innerHeight - margin - nextRect.height / 2
     );
 
     slideGroup.style.left = `${Math.round(centerX)}px`;
