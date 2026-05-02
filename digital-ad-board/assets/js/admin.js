@@ -5,19 +5,24 @@
   const loginForm = document.getElementById("loginForm");
   const slideForm = document.getElementById("slideForm");
   const logoForm = document.getElementById("logoForm");
+  const tagForm = document.getElementById("tagForm");
   const boardSettingsForm = document.getElementById("boardSettingsForm");
   const brandColourList = document.getElementById("brandColourList");
   const addBrandColourButton = document.getElementById("addBrandColourButton");
   const boardPreview = document.getElementById("boardPreview");
   const signOutButton = document.getElementById("signOutButton");
   const slidesViewButton = document.getElementById("slidesViewButton");
+  const tagsViewButton = document.getElementById("tagsViewButton");
   const settingsViewButton = document.getElementById("settingsViewButton");
   const slidesView = document.getElementById("slidesView");
+  const tagsView = document.getElementById("tagsView");
   const settingsView = document.getElementById("settingsView");
   const refreshButton = document.getElementById("refreshButton");
   const refreshLogosButton = document.getElementById("refreshLogosButton");
+  const refreshTagsButton = document.getElementById("refreshTagsButton");
   const slideList = document.getElementById("slideList");
   const logoList = document.getElementById("logoList");
+  const tagList = document.getElementById("tagList");
   const headerLogoPreview = document.getElementById("headerLogoPreview");
   const headerLogoImage = document.getElementById("headerLogoImage");
   const messageArea = document.getElementById("messageArea");
@@ -77,6 +82,15 @@
     return Array.isArray(tags) ? tags.join(", ") : "";
   }
 
+  function normalizeTag(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9 -]+/g, "")
+      .replace(/\s+/g, "-")
+      .slice(0, 80);
+  }
+
   async function setSignedInState() {
     const { data } = await supabaseClient.auth.getSession();
     const signedIn = Boolean(data.session);
@@ -89,7 +103,8 @@
       await Promise.all([
         loadSlides(),
         loadLogos(),
-        loadBoardSettings()
+        loadBoardSettings(),
+        loadTags()
       ]);
     }
   }
@@ -268,6 +283,139 @@
     }
 
     renderSlides(data || []);
+  }
+
+  async function loadTags() {
+    if (!tagList) {
+      return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from("ad_board_tags")
+      .select("*")
+      .order("tag", { ascending: true });
+
+    if (error) {
+      showMessage(error.message, true);
+      return;
+    }
+
+    renderTags(data || []);
+  }
+
+  function renderTags(tags) {
+    tagList.innerHTML = "";
+
+    if (!tags.length) {
+      tagList.textContent = "No tag captions added yet.";
+      return;
+    }
+
+    tags.forEach((tag) => {
+      const card = document.createElement("article");
+      card.className = "tag-card";
+
+      const form = document.createElement("form");
+      form.className = "slide-edit-form";
+      form.addEventListener("submit", (event) => saveTag(event, tag.id));
+
+      const tagLabel = document.createElement("label");
+      tagLabel.textContent = "Tag";
+      const tagInput = document.createElement("input");
+      tagInput.name = "tag";
+      tagInput.type = "text";
+      tagInput.maxLength = 80;
+      tagInput.value = tag.tag || "";
+      tagLabel.appendChild(tagInput);
+
+      const headerLabel = document.createElement("label");
+      headerLabel.textContent = "Header";
+      const headerInput = document.createElement("input");
+      headerInput.name = "header";
+      headerInput.type = "text";
+      headerInput.maxLength = 120;
+      headerInput.value = tag.header || "";
+      headerLabel.appendChild(headerInput);
+
+      const captionLabel = document.createElement("label");
+      captionLabel.textContent = "Caption";
+      const captionInput = document.createElement("textarea");
+      captionInput.name = "caption";
+      captionInput.maxLength = 280;
+      captionInput.rows = 3;
+      captionInput.value = tag.caption || "";
+      captionLabel.appendChild(captionInput);
+
+      const row = document.createElement("div");
+      row.className = "form-row";
+
+      const minLabel = document.createElement("label");
+      minLabel.textContent = "Min Images";
+      const minInput = document.createElement("input");
+      minInput.name = "min_images";
+      minInput.type = "number";
+      minInput.min = 1;
+      minInput.max = 3;
+      minInput.value = tag.min_images || 1;
+      minLabel.appendChild(minInput);
+
+      const maxLabel = document.createElement("label");
+      maxLabel.textContent = "Max Images";
+      const maxInput = document.createElement("input");
+      maxInput.name = "max_images";
+      maxInput.type = "number";
+      maxInput.min = 1;
+      maxInput.max = 3;
+      maxInput.value = tag.max_images || 3;
+      maxLabel.appendChild(maxInput);
+      row.append(minLabel, maxLabel);
+
+      const overlayLabel = document.createElement("label");
+      overlayLabel.textContent = "Overlay";
+      const overlaySelect = document.createElement("select");
+      overlaySelect.name = "overlay_style";
+      [
+        ["random", "Random Each Time"],
+        ["bottom", "Bottom Bar"],
+        ["top-left", "Top Left"],
+        ["center", "Center"],
+        ["minimal", "Minimal"]
+      ].forEach(([value, label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        option.selected = value === tag.overlay_style;
+        overlaySelect.appendChild(option);
+      });
+      overlayLabel.appendChild(overlaySelect);
+
+      const activeLabel = document.createElement("label");
+      activeLabel.className = "checkbox-label";
+      const activeInput = document.createElement("input");
+      activeInput.name = "active";
+      activeInput.type = "checkbox";
+      activeInput.checked = Boolean(tag.active);
+      activeLabel.append(activeInput, document.createTextNode("Active"));
+
+      const actions = document.createElement("div");
+      actions.className = "slide-card-actions";
+
+      const saveButton = document.createElement("button");
+      saveButton.className = "button primary";
+      saveButton.type = "submit";
+      saveButton.textContent = "Save";
+
+      const deleteButton = document.createElement("button");
+      deleteButton.className = "button danger";
+      deleteButton.type = "button";
+      deleteButton.textContent = "Delete";
+      deleteButton.addEventListener("click", () => deleteTag(tag));
+
+      actions.append(saveButton, deleteButton);
+      form.append(tagLabel, headerLabel, captionLabel, row, overlayLabel, activeLabel, actions);
+      card.appendChild(form);
+      tagList.appendChild(card);
+    });
   }
 
   function renderSlides(slides) {
@@ -476,16 +624,100 @@
 
   function showAdminView(viewName) {
     const showSettings = viewName === "settings";
+    const showTags = viewName === "tags";
 
-    slidesView.hidden = showSettings;
+    slidesView.hidden = showSettings || showTags;
     settingsView.hidden = !showSettings;
-    slidesViewButton.classList.toggle("is-selected", !showSettings);
+    if (tagsView) {
+      tagsView.hidden = !showTags;
+    }
+    slidesViewButton.classList.toggle("is-selected", !showSettings && !showTags);
+    if (tagsViewButton) {
+      tagsViewButton.classList.toggle("is-selected", showTags);
+    }
     settingsViewButton.classList.toggle("is-selected", showSettings);
 
     if (showSettings) {
       loadLogos();
       loadBoardSettings();
     }
+
+    if (showTags) {
+      loadTags();
+    }
+  }
+
+  function getTagPayload(formData) {
+    let minImages = Number(formData.get("min_images") || 1);
+    let maxImages = Number(formData.get("max_images") || 3);
+    minImages = Math.min(Math.max(minImages, 1), 3);
+    maxImages = Math.min(Math.max(maxImages, 1), 3);
+
+    if (minImages > maxImages) {
+      maxImages = minImages;
+    }
+
+    return {
+      tag: normalizeTag(formData.get("tag")),
+      header: String(formData.get("header") || "").trim(),
+      caption: String(formData.get("caption") || "").trim(),
+      overlay_style: String(formData.get("overlay_style") || "random"),
+      min_images: minImages,
+      max_images: maxImages,
+      active: formData.get("active") === "on"
+    };
+  }
+
+  async function saveTag(event, tagId) {
+    event.preventDefault();
+    const payload = getTagPayload(new FormData(event.currentTarget));
+
+    if (!payload.tag) {
+      showMessage("Tag name is required.", true);
+      return;
+    }
+
+    const query = tagId
+      ? supabaseClient.from("ad_board_tags").update(payload).eq("id", tagId)
+      : supabaseClient.from("ad_board_tags").upsert(payload, { onConflict: "tag" });
+    const { error } = await query;
+
+    if (error) {
+      showMessage(error.message, true);
+      return;
+    }
+
+    if (!tagId && tagForm) {
+      tagForm.reset();
+      document.getElementById("tagMinImagesInput").value = 1;
+      document.getElementById("tagMaxImagesInput").value = 3;
+      document.getElementById("tagOverlayInput").value = "random";
+      document.getElementById("tagActiveInput").checked = true;
+    }
+
+    showMessage("Tag saved.", false);
+    await loadTags();
+  }
+
+  async function deleteTag(tag) {
+    const confirmed = window.confirm(`Delete tag "${tag.tag}"?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from("ad_board_tags")
+      .delete()
+      .eq("id", tag.id);
+
+    if (error) {
+      showMessage(error.message, true);
+      return;
+    }
+
+    showMessage("Tag deleted.", false);
+    await loadTags();
   }
 
   async function saveSlideEdits(event, slide) {

@@ -39,6 +39,23 @@ create table if not exists public.ad_board_settings (
   constraint ad_board_settings_accent_hex check (brand_accent ~ '^#[0-9A-Fa-f]{6}$')
 );
 
+create table if not exists public.ad_board_tags (
+  id uuid primary key default gen_random_uuid(),
+  tag text not null unique,
+  header text,
+  caption text,
+  overlay_style text not null default 'random'
+    check (overlay_style in ('bottom', 'top-left', 'center', 'minimal', 'random')),
+  min_images integer not null default 1
+    check (min_images between 1 and 3),
+  max_images integer not null default 3
+    check (max_images between 1 and 3),
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint ad_board_tags_image_range check (min_images <= max_images)
+);
+
 alter table public.ad_board_settings
 add column if not exists brand_colours jsonb not null default '["#0f766e", "#073b36", "#f6b453"]'::jsonb;
 
@@ -51,6 +68,7 @@ add column if not exists tags text[] not null default '{}';
 alter table public.ad_board_slides enable row level security;
 alter table public.ad_board_logos enable row level security;
 alter table public.ad_board_settings enable row level security;
+alter table public.ad_board_tags enable row level security;
 
 create or replace function public.set_ad_board_updated_at()
 returns trigger
@@ -65,6 +83,7 @@ $$;
 drop trigger if exists ad_board_slides_updated_at on public.ad_board_slides;
 drop trigger if exists ad_board_logos_updated_at on public.ad_board_logos;
 drop trigger if exists ad_board_settings_updated_at on public.ad_board_settings;
+drop trigger if exists ad_board_tags_updated_at on public.ad_board_tags;
 
 create trigger ad_board_slides_updated_at
 before update on public.ad_board_slides
@@ -78,6 +97,11 @@ execute function public.set_ad_board_updated_at();
 
 create trigger ad_board_settings_updated_at
 before update on public.ad_board_settings
+for each row
+execute function public.set_ad_board_updated_at();
+
+create trigger ad_board_tags_updated_at
+before update on public.ad_board_tags
 for each row
 execute function public.set_ad_board_updated_at();
 
@@ -113,6 +137,42 @@ with check (true);
 
 create policy "Authenticated users can delete ad board slides"
 on public.ad_board_slides
+for delete
+to authenticated
+using (true);
+
+drop policy if exists "Anyone can read active ad board tags" on public.ad_board_tags;
+drop policy if exists "Authenticated users can read all ad board tags" on public.ad_board_tags;
+drop policy if exists "Authenticated users can insert ad board tags" on public.ad_board_tags;
+drop policy if exists "Authenticated users can update ad board tags" on public.ad_board_tags;
+drop policy if exists "Authenticated users can delete ad board tags" on public.ad_board_tags;
+
+create policy "Anyone can read active ad board tags"
+on public.ad_board_tags
+for select
+using (active = true);
+
+create policy "Authenticated users can read all ad board tags"
+on public.ad_board_tags
+for select
+to authenticated
+using (true);
+
+create policy "Authenticated users can insert ad board tags"
+on public.ad_board_tags
+for insert
+to authenticated
+with check (true);
+
+create policy "Authenticated users can update ad board tags"
+on public.ad_board_tags
+for update
+to authenticated
+using (true)
+with check (true);
+
+create policy "Authenticated users can delete ad board tags"
+on public.ad_board_tags
 for delete
 to authenticated
 using (true);
