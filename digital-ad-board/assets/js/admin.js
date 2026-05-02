@@ -5,11 +5,22 @@
   const loginForm = document.getElementById("loginForm");
   const slideForm = document.getElementById("slideForm");
   const logoForm = document.getElementById("logoForm");
+  const boardSettingsForm = document.getElementById("boardSettingsForm");
+  const brandPrimaryInput = document.getElementById("brandPrimaryInput");
+  const brandSecondaryInput = document.getElementById("brandSecondaryInput");
+  const brandAccentInput = document.getElementById("brandAccentInput");
+  const boardPreview = document.getElementById("boardPreview");
   const signOutButton = document.getElementById("signOutButton");
+  const slidesViewButton = document.getElementById("slidesViewButton");
+  const settingsViewButton = document.getElementById("settingsViewButton");
+  const slidesView = document.getElementById("slidesView");
+  const settingsView = document.getElementById("settingsView");
   const refreshButton = document.getElementById("refreshButton");
   const refreshLogosButton = document.getElementById("refreshLogosButton");
   const slideList = document.getElementById("slideList");
   const logoList = document.getElementById("logoList");
+  const headerLogoPreview = document.getElementById("headerLogoPreview");
+  const headerLogoImage = document.getElementById("headerLogoImage");
   const messageArea = document.getElementById("messageArea");
 
   let supabaseClient;
@@ -54,7 +65,59 @@
     if (signedIn) {
       await loadSlides();
       await loadLogos();
+      await loadBoardSettings();
     }
+  }
+
+  function applyBoardColours(settings) {
+    const primary = settings.brand_primary || "#0f766e";
+    const secondary = settings.brand_secondary || "#073b36";
+    const accent = settings.brand_accent || "#f6b453";
+
+    document.documentElement.style.setProperty("--brand-matte", primary);
+    document.documentElement.style.setProperty("--brand-matte-dark", secondary);
+    document.documentElement.style.setProperty("--brand-matte-warm", accent);
+    brandPrimaryInput.value = primary;
+    brandSecondaryInput.value = secondary;
+    brandAccentInput.value = accent;
+  }
+
+  async function loadBoardSettings() {
+    const { data, error } = await supabaseClient
+      .from("ad_board_settings")
+      .select("*")
+      .eq("id", 1)
+      .single();
+
+    if (error) {
+      showMessage(error.message, true);
+      return;
+    }
+
+    applyBoardColours(data);
+  }
+
+  async function saveBoardSettings(event) {
+    event.preventDefault();
+
+    const settings = {
+      id: 1,
+      brand_primary: brandPrimaryInput.value,
+      brand_secondary: brandSecondaryInput.value,
+      brand_accent: brandAccentInput.value
+    };
+
+    const { error } = await supabaseClient
+      .from("ad_board_settings")
+      .upsert(settings, { onConflict: "id" });
+
+    if (error) {
+      showMessage(error.message, true);
+      return;
+    }
+
+    applyBoardColours(settings);
+    showMessage("Board colours saved.", false);
   }
 
   async function loadSlides() {
@@ -202,6 +265,7 @@
 
   function renderLogos(logos) {
     logoList.innerHTML = "";
+    renderHeaderLogo(logos);
 
     if (!logos.length) {
       logoList.textContent = "No logos uploaded yet.";
@@ -248,6 +312,34 @@
       card.append(image, body);
       logoList.appendChild(card);
     });
+  }
+
+  function renderHeaderLogo(logos) {
+    const activeLogo = logos.find((logo) => logo.active);
+
+    if (!activeLogo) {
+      headerLogoPreview.hidden = true;
+      headerLogoImage.removeAttribute("src");
+      return;
+    }
+
+    headerLogoImage.src = getPublicImageUrl(activeLogo.image_path);
+    headerLogoImage.alt = activeLogo.name || "Active logo preview";
+    headerLogoPreview.hidden = false;
+  }
+
+  function showAdminView(viewName) {
+    const showSettings = viewName === "settings";
+
+    slidesView.hidden = showSettings;
+    settingsView.hidden = !showSettings;
+    slidesViewButton.classList.toggle("is-selected", !showSettings);
+    settingsViewButton.classList.toggle("is-selected", showSettings);
+
+    if (showSettings) {
+      loadLogos();
+      loadBoardSettings();
+    }
   }
 
   async function saveSlideEdits(event, slide) {
@@ -492,7 +584,19 @@
     loginForm.addEventListener("submit", signIn);
     slideForm.addEventListener("submit", uploadSlide);
     logoForm.addEventListener("submit", uploadLogo);
+    boardSettingsForm.addEventListener("submit", saveBoardSettings);
+    [brandPrimaryInput, brandSecondaryInput, brandAccentInput].forEach((input) => {
+      input.addEventListener("input", () => {
+        applyBoardColours({
+          brand_primary: brandPrimaryInput.value,
+          brand_secondary: brandSecondaryInput.value,
+          brand_accent: brandAccentInput.value
+        });
+      });
+    });
     signOutButton.addEventListener("click", signOut);
+    slidesViewButton.addEventListener("click", () => showAdminView("slides"));
+    settingsViewButton.addEventListener("click", () => showAdminView("settings"));
     refreshButton.addEventListener("click", loadSlides);
     refreshLogosButton.addEventListener("click", loadLogos);
     setSignedInState();

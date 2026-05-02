@@ -9,11 +9,18 @@
   </head>
   <body class="admin-page">
     <header class="admin-header">
-      <div>
-        <p class="eyebrow">Digital Ad Board</p>
-        <h1>Admin</h1>
+      <div class="brand-header">
+        <div id="headerLogoPreview" class="header-logo-preview" hidden>
+          <img id="headerLogoImage" alt="Active logo preview">
+        </div>
+        <div>
+          <p class="eyebrow">Digital Ad Board</p>
+          <h1>Admin</h1>
+        </div>
       </div>
       <nav class="admin-actions">
+        <button id="slidesViewButton" class="button ghost is-selected" type="button">Slides</button>
+        <button id="settingsViewButton" class="button ghost" type="button">Settings</button>
         <a class="button ghost" href="display.html" target="_blank" rel="noreferrer">Open Display</a>
         <button id="signOutButton" class="button ghost" type="button" hidden>Sign Out</button>
       </nav>
@@ -36,78 +43,108 @@
       </section>
 
       <section id="adminPanel" class="admin-layout" hidden>
-        <section class="panel">
-          <h2>Add Slide</h2>
-          <form id="slideForm" class="form-grid">
-            <label>
-              Image
-              <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required>
-            </label>
-            <label>
-              Header
-              <input id="headerInput" type="text" maxlength="120" placeholder="Fresh arrivals today">
-            </label>
-            <label>
-              Caption
-              <textarea id="captionInput" maxlength="280" rows="3" placeholder="Ask our team for details."></textarea>
-            </label>
-            <div class="form-row">
-              <label>
-                Duration
-                <input id="durationInput" type="number" min="3" max="120" value="8">
-              </label>
-              <label>
-                Overlay
-                <select id="overlayInput">
-                  <option value="bottom">Bottom Bar</option>
-                  <option value="top-left">Top Left</option>
-                  <option value="center">Center</option>
-                  <option value="minimal">Minimal</option>
-                  <option value="random">Random Each Time</option>
-                </select>
-              </label>
+        <section id="slidesView" class="admin-view admin-view-active">
+          <aside class="admin-sidebar">
+            <section class="panel">
+              <h2>Add Slide</h2>
+              <form id="slideForm" class="form-grid">
+                <label>
+                  Image
+                  <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required>
+                </label>
+                <label>
+                  Header
+                  <input id="headerInput" type="text" maxlength="120" placeholder="Fresh arrivals today">
+                </label>
+                <label>
+                  Caption
+                  <textarea id="captionInput" maxlength="280" rows="3" placeholder="Ask our team for details."></textarea>
+                </label>
+                <div class="form-row">
+                  <label>
+                    Duration
+                    <input id="durationInput" type="number" min="3" max="120" value="8">
+                  </label>
+                  <label>
+                    Overlay
+                    <select id="overlayInput">
+                      <option value="bottom">Bottom Bar</option>
+                      <option value="top-left">Top Left</option>
+                      <option value="center">Center</option>
+                      <option value="minimal">Minimal</option>
+                      <option value="random">Random Each Time</option>
+                    </select>
+                  </label>
+                </div>
+                <label class="checkbox-label">
+                  <input id="activeInput" type="checkbox" checked>
+                  Active on display
+                </label>
+                <button class="button primary" type="submit">Upload Slide</button>
+              </form>
+            </section>
+          </aside>
+
+          <section class="panel slides-panel">
+            <div class="panel-title-row">
+              <h2>Slides</h2>
+              <button id="refreshButton" class="button ghost" type="button">Refresh</button>
             </div>
-            <label class="checkbox-label">
-              <input id="activeInput" type="checkbox" checked>
-              Active on display
-            </label>
-            <button class="button primary" type="submit">Upload Slide</button>
-          </form>
+            <div id="slideList" class="slide-list"></div>
+          </section>
         </section>
 
-        <section class="panel">
-          <h2>Add Logo</h2>
-          <form id="logoForm" class="form-grid">
-            <label>
-              Logo Image
-              <input id="logoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" required>
-            </label>
-            <label>
-              Logo Name
-              <input id="logoNameInput" type="text" maxlength="80" placeholder="Main logo">
-            </label>
-            <label class="checkbox-label">
-              <input id="logoActiveInput" type="checkbox" checked>
-              Active on display
-            </label>
-            <button class="button primary" type="submit">Upload Logo</button>
-          </form>
-        </section>
+        <section id="settingsView" class="settings-view" hidden>
+          <section class="panel settings-panel">
+            <h2>Board Colours</h2>
+            <form id="boardSettingsForm" class="form-grid">
+              <div class="colour-grid">
+                <label>
+                  Primary
+                  <input id="brandPrimaryInput" type="color" value="#0f766e">
+                </label>
+                <label>
+                  Dark
+                  <input id="brandSecondaryInput" type="color" value="#073b36">
+                </label>
+                <label>
+                  Accent
+                  <input id="brandAccentInput" type="color" value="#f6b453">
+                </label>
+              </div>
+              <div id="boardPreview" class="board-preview">
+                <span></span>
+              </div>
+              <button class="button primary" type="submit">Save Board Colours</button>
+            </form>
+          </section>
 
-        <section class="panel">
-          <div class="panel-title-row">
-            <h2>Slides</h2>
-            <button id="refreshButton" class="button ghost" type="button">Refresh</button>
-          </div>
-          <div id="slideList" class="slide-list"></div>
-        </section>
+          <section class="panel settings-panel">
+            <h2>Logo Settings</h2>
+            <form id="logoForm" class="form-grid">
+              <label>
+                Logo Image
+                <input id="logoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" required>
+              </label>
+              <label>
+                Logo Name
+                <input id="logoNameInput" type="text" maxlength="80" placeholder="Main logo">
+              </label>
+              <label class="checkbox-label">
+                <input id="logoActiveInput" type="checkbox" checked>
+                Active on display
+              </label>
+              <button class="button primary" type="submit">Upload Logo</button>
+            </form>
+          </section>
 
-        <section class="panel">
-          <div class="panel-title-row">
-            <h2>Logos</h2>
-            <button id="refreshLogosButton" class="button ghost" type="button">Refresh</button>
-          </div>
-          <div id="logoList" class="logo-list"></div>
+          <section class="panel settings-panel">
+            <div class="panel-title-row">
+              <h2>Uploaded Logos</h2>
+              <button id="refreshLogosButton" class="button ghost" type="button">Refresh</button>
+            </div>
+            <div id="logoList" class="logo-list"></div>
+          </section>
         </section>
       </section>
 

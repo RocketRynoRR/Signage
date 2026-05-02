@@ -68,7 +68,9 @@ The overlay style can be set to `Random Each Time`, which randomly changes how t
 
 The display page also shuffles the active slides each time it loops through the list.
 
-Images that do not match the TV shape are shown inside a branded matte/frame so they are not cropped. Images close to the TV shape still fill the screen.
+Images are shown inside a branded matte/frame so the full image is always visible and never cropped.
+
+Board colours can be changed in the admin Settings view. The display page uses those saved colours and randomly switches between several board background styles.
 
 ## Logos
 

@@ -50,19 +50,39 @@ textarea {
   place-items: center;
   width: 100%;
   height: 100%;
-  background: #050505;
+  padding: clamp(18px, 3vw, 46px);
+  background: var(--brand-matte-dark);
   transition: background 400ms ease, padding 400ms ease;
 }
 
-.slide-frame.needs-matte {
-  padding: clamp(18px, 3vw, 46px);
+.board-style-angled {
   background:
-    linear-gradient(135deg, rgba(246, 180, 83, 0.28), transparent 34%),
-    linear-gradient(315deg, rgba(15, 118, 110, 0.46), transparent 42%),
+    linear-gradient(135deg, var(--brand-matte-warm) 0 10%, transparent 10% 34%, var(--brand-matte) 34% 38%, transparent 38%),
+    linear-gradient(315deg, var(--brand-matte) 0 8%, transparent 8% 42%, var(--brand-matte-warm) 42% 45%, transparent 45%),
     var(--brand-matte-dark);
 }
 
-.slide-frame.needs-matte::before {
+.board-style-ribbon {
+  background:
+    linear-gradient(90deg, var(--brand-matte) 0 12px, transparent 12px calc(100% - 12px), var(--brand-matte-warm) calc(100% - 12px)),
+    linear-gradient(160deg, transparent 0 38%, var(--brand-matte) 38% 42%, transparent 42% 55%, var(--brand-matte-warm) 55% 58%, transparent 58%),
+    var(--brand-matte-dark);
+}
+
+.board-style-corners {
+  background:
+    radial-gradient(circle at top left, var(--brand-matte-warm) 0 9%, transparent 9% 28%),
+    radial-gradient(circle at bottom right, var(--brand-matte) 0 11%, transparent 11% 30%),
+    var(--brand-matte-dark);
+}
+
+.board-style-bands {
+  background:
+    linear-gradient(135deg, transparent 0 24%, var(--brand-matte) 24% 28%, transparent 28% 64%, var(--brand-matte-warm) 64% 68%, transparent 68%),
+    var(--brand-matte-dark);
+}
+
+.slide-frame::before {
   content: "";
   position: absolute;
   inset: clamp(10px, 1.5vw, 22px);
@@ -76,13 +96,9 @@ textarea {
   z-index: 1;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   opacity: 0;
   transition: opacity 700ms ease;
-}
-
-.slide-frame.needs-matte .slide-image {
-  object-fit: contain;
 }
 
 .slide-image.is-visible {
@@ -243,6 +259,30 @@ textarea {
   background: #fff;
 }
 
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-logo-preview {
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8faf9;
+  overflow: hidden;
+}
+
+.header-logo-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  padding: 8px;
+}
+
 .admin-header h1,
 .panel h2 {
   margin: 0;
@@ -264,15 +304,70 @@ textarea {
 }
 
 .admin-shell {
-  width: min(1180px, calc(100% - 36px));
+  width: min(1480px, calc(100% - 36px));
   margin: 28px auto 56px;
 }
 
 .admin-layout {
+  display: block;
+}
+
+.admin-view {
   display: grid;
-  grid-template-columns: minmax(280px, 420px) 1fr;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
   gap: 22px;
   align-items: start;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 20px;
+}
+
+.slides-panel {
+  min-height: calc(100vh - 190px);
+}
+
+.settings-view {
+  display: grid;
+  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.settings-panel {
+  align-self: start;
+}
+
+.colour-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.colour-grid input[type="color"] {
+  height: 48px;
+  padding: 4px;
+}
+
+.board-preview {
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+  border: 10px solid var(--brand-matte);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, var(--brand-matte-warm) 0 10%, transparent 10% 34%, var(--brand-matte) 34% 38%, transparent 38%),
+    linear-gradient(315deg, var(--brand-matte) 0 8%, transparent 8% 42%, var(--brand-matte-warm) 42% 45%, transparent 45%),
+    var(--brand-matte-dark);
+}
+
+.board-preview span {
+  width: min(62%, 260px);
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25);
 }
 
 .panel {
@@ -365,6 +460,12 @@ textarea {
   border-color: var(--line);
 }
 
+.button.is-selected {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
 .button.danger {
   color: #fff;
   background: var(--danger);
@@ -378,18 +479,22 @@ textarea {
 .slide-card,
 .logo-card {
   display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 16px;
-  padding: 14px;
+  grid-template-columns: minmax(220px, 34%) minmax(0, 1fr);
+  gap: 22px;
+  padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
 }
 
+.logo-card {
+  grid-template-columns: 180px minmax(0, 1fr);
+}
+
 .slide-thumb,
 .logo-thumb {
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: 6px;
   background: #eee;
@@ -457,10 +562,15 @@ textarea {
     flex-direction: column;
   }
 
-  .admin-layout,
+  .admin-view,
+  .settings-view,
   .slide-card,
   .logo-card,
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: static;
   }
 }

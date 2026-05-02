@@ -5,6 +5,12 @@
     "overlay-center",
     "overlay-minimal"
   ];
+  const boardStyleClasses = [
+    "board-style-angled",
+    "board-style-ribbon",
+    "board-style-corners",
+    "board-style-bands"
+  ];
 
   const config = window.AD_BOARD_SUPABASE;
   const slideFrame = document.getElementById("slideFrame");
@@ -62,6 +68,21 @@
     return overlayClass;
   }
 
+  function setRandomBoardStyle() {
+    slideFrame.classList.remove(...boardStyleClasses);
+    slideFrame.classList.add(pickRandom(boardStyleClasses));
+  }
+
+  function applyBoardColours(settings) {
+    if (!settings) {
+      return;
+    }
+
+    document.documentElement.style.setProperty("--brand-matte", settings.brand_primary || "#0f766e");
+    document.documentElement.style.setProperty("--brand-matte-dark", settings.brand_secondary || "#073b36");
+    document.documentElement.style.setProperty("--brand-matte-warm", settings.brand_accent || "#f6b453");
+  }
+
   function getPublicImageUrl(imagePath) {
     const result = supabaseClient.storage
       .from(config.storageBucket)
@@ -81,11 +102,11 @@
     slideLogo.classList.remove("is-visible");
 
     window.setTimeout(() => {
-      slideImage.onload = applyImageFitMode;
       slideImage.src = imageUrl;
       slideImage.alt = header || caption || "Advert slide";
       slideHeader.textContent = header;
       slideCaption.textContent = caption;
+      setRandomBoardStyle();
       const overlayClass = setOverlayStyle(slide.overlay_style);
 
       slideImage.classList.add("is-visible");
@@ -93,16 +114,6 @@
       showLogo(logo, overlayClass);
       emptyState.hidden = true;
     }, 250);
-  }
-
-  function applyImageFitMode() {
-    const imageRatio = slideImage.naturalWidth / slideImage.naturalHeight;
-    const screenRatio = window.innerWidth / window.innerHeight;
-    const ratioDifference = Math.abs(imageRatio - screenRatio) / screenRatio;
-    const needsMatte = ratioDifference > 0.12;
-
-    slideFrame.classList.toggle("needs-matte", needsMatte);
-    slideFrame.classList.toggle("fill-screen", !needsMatte);
   }
 
   function showLogo(logo, overlayClass) {
@@ -180,6 +191,18 @@
     logos = data || [];
   }
 
+  async function loadBoardSettings() {
+    const { data, error } = await supabaseClient
+      .from("ad_board_settings")
+      .select("*")
+      .eq("id", 1)
+      .single();
+
+    if (!error) {
+      applyBoardColours(data);
+    }
+  }
+
   function exitToAdmin() {
     window.location.href = "admin.html";
   }
@@ -202,11 +225,6 @@
       }
     });
 
-    window.addEventListener("resize", () => {
-      if (slideImage.naturalWidth && slideImage.naturalHeight) {
-        applyImageFitMode();
-      }
-    });
   }
 
   async function init() {
@@ -217,9 +235,12 @@
 
     supabaseClient = window.supabase.createClient(config.url, config.anonKey);
     setupHiddenExitControls();
+    setRandomBoardStyle();
+    await loadBoardSettings();
     await loadLogos();
     await loadSlides();
     window.setInterval(async () => {
+      await loadBoardSettings();
       await loadLogos();
       await loadSlides();
     }, 5 * 60 * 1000);

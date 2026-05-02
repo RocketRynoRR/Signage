@@ -25,8 +25,21 @@ create table if not exists public.ad_board_logos (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.ad_board_settings (
+  id integer primary key default 1,
+  brand_primary text not null default '#0f766e',
+  brand_secondary text not null default '#073b36',
+  brand_accent text not null default '#f6b453',
+  updated_at timestamptz not null default now(),
+  constraint ad_board_settings_single_row check (id = 1),
+  constraint ad_board_settings_primary_hex check (brand_primary ~ '^#[0-9A-Fa-f]{6}$'),
+  constraint ad_board_settings_secondary_hex check (brand_secondary ~ '^#[0-9A-Fa-f]{6}$'),
+  constraint ad_board_settings_accent_hex check (brand_accent ~ '^#[0-9A-Fa-f]{6}$')
+);
+
 alter table public.ad_board_slides enable row level security;
 alter table public.ad_board_logos enable row level security;
+alter table public.ad_board_settings enable row level security;
 
 create or replace function public.set_ad_board_updated_at()
 returns trigger
@@ -40,6 +53,7 @@ $$;
 
 drop trigger if exists ad_board_slides_updated_at on public.ad_board_slides;
 drop trigger if exists ad_board_logos_updated_at on public.ad_board_logos;
+drop trigger if exists ad_board_settings_updated_at on public.ad_board_settings;
 
 create trigger ad_board_slides_updated_at
 before update on public.ad_board_slides
@@ -48,6 +62,11 @@ execute function public.set_ad_board_updated_at();
 
 create trigger ad_board_logos_updated_at
 before update on public.ad_board_logos
+for each row
+execute function public.set_ad_board_updated_at();
+
+create trigger ad_board_settings_updated_at
+before update on public.ad_board_settings
 for each row
 execute function public.set_ad_board_updated_at();
 
@@ -122,6 +141,32 @@ on public.ad_board_logos
 for delete
 to authenticated
 using (true);
+
+insert into public.ad_board_settings (id)
+values (1)
+on conflict (id) do nothing;
+
+drop policy if exists "Anyone can read ad board settings" on public.ad_board_settings;
+drop policy if exists "Authenticated users can update ad board settings" on public.ad_board_settings;
+drop policy if exists "Authenticated users can insert ad board settings" on public.ad_board_settings;
+
+create policy "Anyone can read ad board settings"
+on public.ad_board_settings
+for select
+using (true);
+
+create policy "Authenticated users can update ad board settings"
+on public.ad_board_settings
+for update
+to authenticated
+using (id = 1)
+with check (id = 1);
+
+create policy "Authenticated users can insert ad board settings"
+on public.ad_board_settings
+for insert
+to authenticated
+with check (id = 1);
 
 insert into storage.buckets (id, name, public)
 values ('ad-board-images', 'ad-board-images', true)
