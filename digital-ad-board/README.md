@@ -65,6 +65,8 @@ Each slide has:
 - display duration
 - active/hidden setting
 
+The slide uploader accepts one image or many images at once. When auto-fill is enabled, blank headers and captions are generated from each image file name during bulk upload.
+
 The overlay style can be set to `Random Each Time`, which randomly changes how the header and caption sit over the image whenever that slide appears.
 
 The display page also shuffles the active slides each time it loops through the list.

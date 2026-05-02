@@ -69,6 +69,33 @@
       .slice(0, 60);
   }
 
+  function stripFileExtension(fileName) {
+    return String(fileName || "").replace(/\.[^.]+$/, "");
+  }
+
+  function titleFromFileName(fileName) {
+    const words = stripFileExtension(fileName)
+      .replace(/^\d{8,}[-_\s]*/g, "")
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!words) {
+      return "New Slide";
+    }
+
+    return words
+      .split(" ")
+      .map((word) => word ? `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}` : "")
+      .join(" ")
+      .slice(0, 120);
+  }
+
+  function captionFromFileName(fileName) {
+    const title = titleFromFileName(fileName);
+    return title === "New Slide" ? "" : title.slice(0, 280);
+  }
+
   function parseTags(value) {
     return String(value || "")
       .split(",")
@@ -807,60 +834,72 @@
 
   async function uploadSlide(event) {
     event.preventDefault();
-    showMessage("Uploading slide...", false);
 
-    const file = document.getElementById("imageInput").files[0];
+    const files = Array.from(document.getElementById("imageInput").files || []);
     const header = document.getElementById("headerInput").value.trim();
     const caption = document.getElementById("captionInput").value.trim();
     const tags = parseTags(document.getElementById("tagsInput").value);
     const duration = Number(document.getElementById("durationInput").value || 8);
     const overlay = document.getElementById("overlayInput").value;
     const active = document.getElementById("activeInput").checked;
+    const autoFill = document.getElementById("autoFillInput").checked;
 
-    if (!file) {
-      showMessage("Choose an image first.", true);
+    if (!files.length) {
+      showMessage("Choose one or more images first.", true);
       return;
     }
 
-    const extension = file.name.split(".").pop();
-    const safeName = slugify(file.name.replace(/\.[^.]+$/, "")) || "slide";
-    const imagePath = `${Date.now()}-${safeName}.${extension}`;
+    showMessage(`Uploading ${files.length} slide${files.length === 1 ? "" : "s"}...`, false);
 
-    const uploadResult = await supabaseClient.storage
-      .from(config.storageBucket)
-      .upload(imagePath, file, {
-        cacheControl: "3600",
-        upsert: false
-      });
+    let uploadedCount = 0;
 
-    if (uploadResult.error) {
-      showMessage(uploadResult.error.message, true);
-      return;
-    }
+    for (const [index, file] of files.entries()) {
+      const extension = file.name.split(".").pop();
+      const safeName = slugify(stripFileExtension(file.name)) || "slide";
+      const imagePath = `${Date.now()}-${index + 1}-${safeName}.${extension}`;
+      const slideHeader = header || (autoFill ? titleFromFileName(file.name) : "");
+      const slideCaption = caption || (autoFill ? captionFromFileName(file.name) : "");
 
-    const insertResult = await supabaseClient
-      .from("ad_board_slides")
-      .insert({
-        image_path: imagePath,
-        header,
-        caption,
-        tags,
-        duration_seconds: duration,
-        overlay_style: overlay,
-        active
-      });
+      const uploadResult = await supabaseClient.storage
+        .from(config.storageBucket)
+        .upload(imagePath, file, {
+          cacheControl: "3600",
+          upsert: false
+        });
 
-    if (insertResult.error) {
-      showMessage(insertResult.error.message, true);
-      return;
+      if (uploadResult.error) {
+        showMessage(`Uploaded ${uploadedCount}/${files.length}. ${uploadResult.error.message}`, true);
+        return;
+      }
+
+      const insertResult = await supabaseClient
+        .from("ad_board_slides")
+        .insert({
+          image_path: imagePath,
+          header: slideHeader,
+          caption: slideCaption,
+          tags,
+          duration_seconds: duration,
+          overlay_style: overlay,
+          active
+        });
+
+      if (insertResult.error) {
+        showMessage(`Uploaded ${uploadedCount}/${files.length}. ${insertResult.error.message}`, true);
+        return;
+      }
+
+      uploadedCount += 1;
+      showMessage(`Uploaded ${uploadedCount}/${files.length} slide${files.length === 1 ? "" : "s"}...`, false);
     }
 
     slideForm.reset();
     document.getElementById("durationInput").value = 8;
     document.getElementById("overlayInput").value = "random";
     document.getElementById("activeInput").checked = true;
+    document.getElementById("autoFillInput").checked = true;
     document.getElementById("tagsInput").value = "";
-    showMessage("Slide uploaded.", false);
+    showMessage(`Uploaded ${uploadedCount} slide${uploadedCount === 1 ? "" : "s"}.`, false);
     await loadSlides();
   }
 
@@ -967,6 +1006,26 @@
     await setSignedInState();
   }
 
+  function previewAutoFilledSlideText() {
+    const imageInput = document.getElementById("imageInput");
+    const headerInput = document.getElementById("headerInput");
+    const captionInput = document.getElementById("captionInput");
+    const autoFillInput = document.getElementById("autoFillInput");
+    const firstFile = imageInput.files && imageInput.files[0];
+
+    if (!firstFile || !autoFillInput.checked) {
+      return;
+    }
+
+    if (!headerInput.value.trim()) {
+      headerInput.placeholder = titleFromFileName(firstFile.name);
+    }
+
+    if (!captionInput.value.trim()) {
+      captionInput.placeholder = captionFromFileName(firstFile.name);
+    }
+  }
+
   function init() {
     if (!config || !config.url || !config.anonKey) {
       showMessage("Missing Supabase config file. Copy supabase-config.example.js to supabase-config.js first.", true);
@@ -976,6 +1035,8 @@
     supabaseClient = window.supabase.createClient(config.url, config.anonKey);
     safeOn(loginForm, "submit", signIn);
     safeOn(slideForm, "submit", uploadSlide);
+    safeOn(document.getElementById("imageInput"), "change", previewAutoFilledSlideText);
+    safeOn(document.getElementById("autoFillInput"), "change", previewAutoFilledSlideText);
     safeOn(logoForm, "submit", uploadLogo);
     safeOn(tagForm, "submit", (event) => saveTag(event, null));
     safeOn(boardSettingsForm, "submit", saveBoardSettings);

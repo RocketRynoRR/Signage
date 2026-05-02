@@ -50,16 +50,20 @@
               <h2>Add Slide</h2>
               <form id="slideForm" class="form-grid">
                 <label>
-                  Image
-                  <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required>
+                  Images
+                  <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple required>
+                </label>
+                <label class="checkbox-label">
+                  <input id="autoFillInput" type="checkbox" checked>
+                  Auto-fill empty headers and captions from file names
                 </label>
                 <label>
                   Header
-                  <input id="headerInput" type="text" maxlength="120" placeholder="Fresh arrivals today">
+                  <input id="headerInput" type="text" maxlength="120" placeholder="Leave blank for automatic bulk titles">
                 </label>
                 <label>
                   Caption
-                  <textarea id="captionInput" maxlength="280" rows="3" placeholder="Ask our team for details."></textarea>
+                  <textarea id="captionInput" maxlength="280" rows="3" placeholder="Leave blank for automatic bulk captions."></textarea>
                 </label>
                 <label>
                   Tags
@@ -85,7 +89,7 @@
                   <input id="activeInput" type="checkbox" checked>
                   Active on display
                 </label>
-                <button class="button primary" type="submit">Upload Slide</button>
+                <button class="button primary" type="submit">Upload Selected Slides</button>
               </form>
             </section>
           </aside>
