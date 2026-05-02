@@ -24,6 +24,7 @@
   const slideFrame = document.getElementById("slideFrame");
   const slideImageBox = document.getElementById("slideImageBox");
   const slideImage = document.getElementById("slideImage");
+  const slideGroup = document.getElementById("slideGroup");
   const slideOverlay = document.getElementById("slideOverlay");
   const slideHeader = document.getElementById("slideHeader");
   const slideCaption = document.getElementById("slideCaption");
@@ -40,6 +41,7 @@
   let brandPalette = ["#0f766e", "#073b36", "#f6b453"];
   let currentOverlayClass = "overlay-bottom";
   let currentImageZone = null;
+  let currentSlideSet = [];
 
   function showStatus(message) {
     statusBanner.textContent = message;
@@ -72,6 +74,7 @@
 
   function setOverlayStyle(style) {
     slideOverlay.classList.remove(...overlayClasses, "caption-over-image", "logo-avoid-left");
+    slideOverlay.removeAttribute("style");
     const overlayClass = getOverlayClass(style);
     slideOverlay.classList.add(overlayClass);
     currentOverlayClass = overlayClass;
@@ -243,6 +246,17 @@
       first.bottom > second.top;
   }
 
+  function getOverlapArea(first, second) {
+    const width = Math.max(0, Math.min(first.right, second.right) - Math.max(first.left, second.left));
+    const height = Math.max(0, Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top));
+
+    return width * height;
+  }
+
+  function getRectArea(rect) {
+    return Math.max(1, rect.width * rect.height);
+  }
+
   function moveImageAwayFromLogo() {
     if (!slideLogo.classList.contains("is-visible")) {
       return;
@@ -250,9 +264,16 @@
 
     const padding = Math.max(18, window.innerWidth * 0.015);
     const logoRect = getPaddedRect(slideLogo, padding);
-    let imageRect = getPaddedRect(slideImageBox, padding);
+    const activeImageElement = getActiveImageElement();
+    let imageRect = getPaddedRect(activeImageElement, padding);
 
     if (!rectsOverlap(imageRect, logoRect)) {
+      return;
+    }
+
+    if (activeImageElement === slideGroup) {
+      slideGroup.style.left = "44%";
+      slideGroup.style.top = "54%";
       return;
     }
 
@@ -296,12 +317,68 @@
       slideOverlay.classList.add("logo-avoid-left");
     }
 
-    const overlayRect = getPaddedRect(slideOverlay, padding);
-    const imageRect = getPaddedRect(slideImageBox, padding);
+    let overlayRect = getPaddedRect(slideOverlay, padding);
+    const imageRect = getPaddedRect(getActiveImageElement(), padding);
+    let imageOverlapRatio = getOverlapArea(overlayRect, imageRect) / getRectArea(imageRect);
 
-    if (rectsOverlap(overlayRect, imageRect)) {
+    if (imageOverlapRatio > 0.2) {
+      moveCaptionAwayFromImage(imageRect, logoRect);
+      overlayRect = getPaddedRect(slideOverlay, padding);
+      imageOverlapRatio = getOverlapArea(overlayRect, imageRect) / getRectArea(imageRect);
+    }
+
+    if (imageOverlapRatio > 0 && imageOverlapRatio <= 0.2) {
       slideOverlay.classList.add("caption-over-image");
     }
+  }
+
+  function getActiveImageElement() {
+    return slideGroup.hidden ? slideImageBox : slideGroup;
+  }
+
+  function moveCaptionAwayFromImage(imageRect, logoRect) {
+    const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    const overlayRect = slideOverlay.getBoundingClientRect();
+    const candidates = [
+      { left: margin, top: margin },
+      { left: window.innerWidth - overlayRect.width - margin, top: margin },
+      { left: margin, top: window.innerHeight - overlayRect.height - margin },
+      { left: window.innerWidth - overlayRect.width - margin, top: window.innerHeight - overlayRect.height - margin },
+      { left: (window.innerWidth - overlayRect.width) / 2, top: margin },
+      { left: (window.innerWidth - overlayRect.width) / 2, top: window.innerHeight - overlayRect.height - margin }
+    ];
+
+    let bestCandidate = null;
+    let bestOverlap = Number.POSITIVE_INFINITY;
+
+    candidates.forEach((candidate) => {
+      const rect = {
+        left: candidate.left,
+        top: candidate.top,
+        right: candidate.left + overlayRect.width,
+        bottom: candidate.top + overlayRect.height,
+        width: overlayRect.width,
+        height: overlayRect.height
+      };
+      const touchesLogo = logoRect && rectsOverlap(rect, logoRect);
+      const overlap = getOverlapArea(rect, imageRect);
+
+      if (!touchesLogo && overlap < bestOverlap) {
+        bestOverlap = overlap;
+        bestCandidate = candidate;
+      }
+    });
+
+    if (!bestCandidate) {
+      return;
+    }
+
+    slideOverlay.classList.remove(...overlayClasses);
+    slideOverlay.style.left = `${Math.round(clamp(bestCandidate.left, margin, window.innerWidth - overlayRect.width - margin))}px`;
+    slideOverlay.style.top = `${Math.round(clamp(bestCandidate.top, margin, window.innerHeight - overlayRect.height - margin))}px`;
+    slideOverlay.style.right = "auto";
+    slideOverlay.style.bottom = "auto";
+    slideOverlay.style.transform = "none";
   }
 
   function resolveLayoutCollisions() {
@@ -333,6 +410,8 @@
   }
 
   function showSlide(slide) {
+    const slideSet = pickRelatedSlides(slide);
+    currentSlideSet = slideSet;
     const imageUrl = getPublicImageUrl(slide.image_path);
     const header = slide.header || "";
     const caption = slide.caption || "";
@@ -341,24 +420,96 @@
     slideOverlay.classList.remove("is-visible");
     slideImage.classList.remove("is-visible");
     slideLogo.classList.remove("is-visible");
+    slideGroup.hidden = true;
+    slideGroup.innerHTML = "";
     currentImageZone = null;
 
     window.setTimeout(() => {
-      slideImage.onload = applySafeImageBox;
-      slideImage.src = imageUrl;
-      slideImage.alt = header || caption || "Advert slide";
+      if (slideSet.length > 1) {
+        renderSlideGroup(slideSet);
+        slideImageBox.hidden = true;
+      } else {
+        slideImageBox.hidden = false;
+        slideImage.onload = applySafeImageBox;
+        slideImage.src = imageUrl;
+        slideImage.alt = header || caption || "Advert slide";
+      }
+
       slideHeader.textContent = header;
       slideCaption.textContent = caption;
       setRandomBoardStyle();
       const overlayClass = setOverlayStyle(slide.overlay_style);
-      setRandomImageBox(overlayClass);
+      if (slideSet.length > 1) {
+        positionSlideGroup(overlayClass);
+      } else {
+        setRandomImageBox(overlayClass);
+      }
 
-      slideImage.classList.add("is-visible");
+      slideImage.classList.toggle("is-visible", slideSet.length === 1);
       slideOverlay.classList.toggle("is-visible", Boolean(header || caption));
       showLogo(logo);
       resolveLayoutCollisions();
       emptyState.hidden = true;
     }, 250);
+  }
+
+  function getSlideTags(slide) {
+    return Array.isArray(slide.tags) ? slide.tags.filter(Boolean) : [];
+  }
+
+  function pickRelatedSlides(slide) {
+    const tags = getSlideTags(slide);
+
+    if (!tags.length || Math.random() > 0.55) {
+      return [slide];
+    }
+
+    const tag = pickRandom(tags);
+    const related = shuffle(slides.filter((candidate) =>
+      candidate.id !== slide.id && getSlideTags(candidate).includes(tag)
+    ));
+    const count = Math.min(3, 1 + related.length, pickRandom([2, 2, 3]));
+
+    return [slide, ...related.slice(0, count - 1)];
+  }
+
+  function renderSlideGroup(slideSet) {
+    slideGroup.innerHTML = "";
+    slideGroup.classList.remove("group-count-2", "group-count-3");
+    slideGroup.classList.add(`group-count-${slideSet.length}`);
+
+    slideSet.forEach((slide) => {
+      const card = document.createElement("div");
+      card.className = "slide-group-card";
+
+      const image = document.createElement("img");
+      image.src = getPublicImageUrl(slide.image_path);
+      image.alt = slide.header || slide.caption || "Advert slide";
+
+      card.appendChild(image);
+      slideGroup.appendChild(card);
+    });
+
+    slideGroup.hidden = false;
+  }
+
+  function positionSlideGroup(overlayClass) {
+    slideGroup.style.left = "50%";
+    slideGroup.style.top = "50%";
+
+    if (overlayClass === "overlay-bottom") {
+      slideGroup.style.top = "43%";
+    }
+
+    if (overlayClass === "overlay-top-left") {
+      slideGroup.style.left = "58%";
+      slideGroup.style.top = "54%";
+    }
+
+    if (overlayClass === "overlay-minimal") {
+      slideGroup.style.left = "46%";
+      slideGroup.style.top = "46%";
+    }
   }
 
   function showLogo(logo) {
@@ -386,6 +537,7 @@
       slideImage.classList.remove("is-visible");
       slideOverlay.classList.remove("is-visible");
       slideLogo.classList.remove("is-visible");
+      slideGroup.hidden = true;
       return;
     }
 

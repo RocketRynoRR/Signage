@@ -64,6 +64,19 @@
       .slice(0, 60);
   }
 
+  function parseTags(value) {
+    return String(value || "")
+      .split(",")
+      .map((tag) => tag.trim().toLowerCase())
+      .filter(Boolean)
+      .filter((tag, index, tags) => tags.indexOf(tag) === index)
+      .slice(0, 12);
+  }
+
+  function formatTags(tags) {
+    return Array.isArray(tags) ? tags.join(", ") : "";
+  }
+
   async function setSignedInState() {
     const { data } = await supabaseClient.auth.getSession();
     const signedIn = Boolean(data.session);
@@ -299,6 +312,15 @@
       captionInput.value = slide.caption || "";
       captionLabel.appendChild(captionInput);
 
+      const tagsLabel = document.createElement("label");
+      tagsLabel.textContent = "Tags";
+      const tagsInput = document.createElement("input");
+      tagsInput.name = "tags";
+      tagsInput.type = "text";
+      tagsInput.maxLength = 160;
+      tagsInput.value = formatTags(slide.tags);
+      tagsLabel.appendChild(tagsInput);
+
       const editRow = document.createElement("div");
       editRow.className = "form-row";
 
@@ -342,7 +364,8 @@
 
       const meta = document.createElement("div");
       meta.className = "slide-card-meta";
-      meta.textContent = `${slide.active ? "Active" : "Hidden"} | ${slide.duration_seconds || 8}s | ${slide.overlay_style || "random"}`;
+      const tagText = Array.isArray(slide.tags) && slide.tags.length ? ` | ${slide.tags.join(", ")}` : "";
+      meta.textContent = `${slide.active ? "Active" : "Hidden"} | ${slide.duration_seconds || 8}s | ${slide.overlay_style || "random"}${tagText}`;
 
       const actions = document.createElement("div");
       actions.className = "slide-card-actions";
@@ -365,7 +388,7 @@
       deleteButton.addEventListener("click", () => deleteSlide(slide));
 
       actions.append(saveButton, toggleButton, deleteButton);
-      editForm.append(headerLabel, captionLabel, editRow, activeLabel, meta, actions);
+      editForm.append(headerLabel, captionLabel, tagsLabel, editRow, activeLabel, meta, actions);
       body.append(editForm);
       card.append(image, body);
       slideList.appendChild(card);
@@ -472,6 +495,7 @@
     const updates = {
       header: String(formData.get("header") || "").trim(),
       caption: String(formData.get("caption") || "").trim(),
+      tags: parseTags(formData.get("tags")),
       duration_seconds: Number(formData.get("duration_seconds") || 8),
       overlay_style: String(formData.get("overlay_style") || "random"),
       active: formData.get("active") === "on"
@@ -546,6 +570,7 @@
     const file = document.getElementById("imageInput").files[0];
     const header = document.getElementById("headerInput").value.trim();
     const caption = document.getElementById("captionInput").value.trim();
+    const tags = parseTags(document.getElementById("tagsInput").value);
     const duration = Number(document.getElementById("durationInput").value || 8);
     const overlay = document.getElementById("overlayInput").value;
     const active = document.getElementById("activeInput").checked;
@@ -577,6 +602,7 @@
         image_path: imagePath,
         header,
         caption,
+        tags,
         duration_seconds: duration,
         overlay_style: overlay,
         active
@@ -591,6 +617,7 @@
     document.getElementById("durationInput").value = 8;
     document.getElementById("overlayInput").value = "random";
     document.getElementById("activeInput").checked = true;
+    document.getElementById("tagsInput").value = "";
     showMessage("Slide uploaded.", false);
     await loadSlides();
   }

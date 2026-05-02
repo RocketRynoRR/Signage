@@ -60,6 +60,7 @@ Each slide has:
 - image
 - header
 - caption
+- tags
 - overlay style
 - display duration
 - active/hidden setting
@@ -69,6 +70,8 @@ The overlay style can be set to `Random Each Time`, which randomly changes how t
 The display page also shuffles the active slides each time it loops through the list.
 
 Images are shown inside a branded matte/frame so the full image is always visible and never cropped.
+
+Slides with matching tags can be shown together. For example, if several slides use the tag `stickers`, the display page can randomly show 1 to 3 sticker images on the screen at once.
 
 Board colours can be added, removed, and saved in the admin Settings view. The display page uses those saved colours and randomly switches between several board background styles, including angled bands, bubbles, stripes, dashes, waves, confetti, and checks.
 
