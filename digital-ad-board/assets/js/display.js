@@ -322,6 +322,23 @@
     const logoRect = logoVisible ? getPaddedRect(slideLogo, padding) : null;
     const placed = placeCaptionWithoutOverlap(logoRect, padding);
     slideOverlay.classList.toggle("is-visible", placed);
+
+    if (placed) {
+      clampCaptionInsideViewport();
+    }
+  }
+
+  function clampCaptionInsideViewport() {
+    const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    const rect = slideOverlay.getBoundingClientRect();
+    const left = clamp(rect.left, margin, Math.max(margin, window.innerWidth - rect.width - margin));
+    const top = clamp(rect.top, margin, Math.max(margin, window.innerHeight - rect.height - margin));
+
+    slideOverlay.style.left = `${Math.round(left)}px`;
+    slideOverlay.style.top = `${Math.round(top)}px`;
+    slideOverlay.style.right = "auto";
+    slideOverlay.style.bottom = "auto";
+    slideOverlay.style.transform = "none";
   }
 
   function fitCaptionTextToBox() {
@@ -329,23 +346,59 @@
     const maxWidth = Math.max(260, window.innerWidth - margin * 2);
     const maxHeight = Math.max(180, window.innerHeight - margin * 2);
 
-    slideOverlay.style.maxWidth = `${Math.round(Math.min(760, maxWidth))}px`;
+    slideOverlay.style.width = `${Math.round(Math.min(900, maxWidth))}px`;
+    slideOverlay.style.maxWidth = `${Math.round(maxWidth)}px`;
     slideOverlay.style.maxHeight = `${Math.round(maxHeight)}px`;
+    slideOverlay.style.textAlign = "center";
     slideHeader.removeAttribute("style");
     slideCaption.removeAttribute("style");
 
     let attempts = 0;
     while (
-      attempts < 8 &&
+      attempts < 12 &&
       (slideOverlay.scrollWidth > slideOverlay.clientWidth + 1 ||
-        slideOverlay.scrollHeight > slideOverlay.clientHeight + 1)
+        slideOverlay.scrollHeight > slideOverlay.clientHeight + 1 ||
+        slideHeader.scrollWidth > slideHeader.clientWidth + 1 ||
+        slideCaption.scrollWidth > slideCaption.clientWidth + 1)
     ) {
       const headerSize = parseFloat(window.getComputedStyle(slideHeader).fontSize);
       const captionSize = parseFloat(window.getComputedStyle(slideCaption).fontSize);
-      slideHeader.style.fontSize = `${Math.max(24, headerSize * 0.88)}px`;
-      slideCaption.style.fontSize = `${Math.max(16, captionSize * 0.88)}px`;
+      slideHeader.style.fontSize = `${Math.max(20, headerSize * 0.88)}px`;
+      slideCaption.style.fontSize = `${Math.max(14, captionSize * 0.88)}px`;
       attempts += 1;
     }
+
+    clampOverlayTextLines();
+  }
+
+  function clampOverlayTextLines() {
+    [slideHeader, slideCaption].forEach((element) => {
+      const words = element.textContent.trim().split(/\s+/).filter(Boolean);
+      if (!words.length) {
+        return;
+      }
+
+      const longestWord = words.reduce((longest, word) =>
+        word.length > longest.length ? word : longest, ""
+      );
+      const probe = document.createElement("span");
+      probe.textContent = longestWord;
+      probe.style.position = "absolute";
+      probe.style.visibility = "hidden";
+      probe.style.whiteSpace = "nowrap";
+      probe.style.font = window.getComputedStyle(element).font;
+      document.body.appendChild(probe);
+
+      let attempts = 0;
+      while (attempts < 8 && probe.offsetWidth > element.clientWidth) {
+        const currentSize = parseFloat(window.getComputedStyle(element).fontSize);
+        element.style.fontSize = `${Math.max(14, currentSize * 0.9)}px`;
+        probe.style.font = window.getComputedStyle(element).font;
+        attempts += 1;
+      }
+
+      probe.remove();
+    });
   }
 
   function getActiveImageElement() {
@@ -370,11 +423,8 @@
 
   function placeCaptionWithoutOverlap(logoRect, padding) {
     const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
-    const previousClasses = overlayClasses.filter((className) =>
-      slideOverlay.classList.contains(className)
-    );
-    slideOverlay.classList.remove(...overlayClasses);
-    slideOverlay.style.maxWidth = `${Math.round(Math.min(760, window.innerWidth - margin * 2))}px`;
+    slideOverlay.style.width = `${Math.round(Math.min(900, window.innerWidth - margin * 2))}px`;
+    slideOverlay.style.maxWidth = `${Math.round(window.innerWidth - margin * 2)}px`;
     slideOverlay.style.maxHeight = `${Math.round(window.innerHeight - margin * 2)}px`;
     slideOverlay.style.right = "auto";
     slideOverlay.style.bottom = "auto";
@@ -412,7 +462,6 @@
         total + (getOverlapArea(rect, imageRect) / getRectArea(imageRect)), 0);
 
       if (!touchesLogo && !touchesImage && rectIsInsideViewport(rect, margin)) {
-        slideOverlay.classList.add(...previousClasses);
         slideOverlay.style.left = `${Math.round(left)}px`;
         slideOverlay.style.top = `${Math.round(top)}px`;
         slideOverlay.style.right = "auto";
@@ -428,7 +477,7 @@
     }
 
     if (fallback && fallbackOverlapRatio <= 0.22) {
-      slideOverlay.classList.add(...previousClasses, "caption-over-image");
+      slideOverlay.classList.add("caption-over-image");
       slideOverlay.style.left = `${Math.round(fallback.left)}px`;
       slideOverlay.style.top = `${Math.round(fallback.top)}px`;
       slideOverlay.style.right = "auto";
@@ -437,7 +486,7 @@
       return true;
     }
 
-    slideOverlay.classList.add(...previousClasses, "caption-over-image");
+    slideOverlay.classList.add("caption-over-image");
     const maxLeft = Math.max(margin, window.innerWidth - overlayRect.width - margin);
     const maxTop = Math.max(margin, window.innerHeight - overlayRect.height - margin);
     const left = clamp(margin, margin, maxLeft);

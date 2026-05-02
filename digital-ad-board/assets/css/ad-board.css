@@ -258,15 +258,17 @@ textarea {
   align-content: center;
   justify-items: center;
   color: #fff;
-  width: max-content;
-  max-width: min(760px, calc(100vw - 72px));
+  width: min(900px, calc(100vw - 96px));
+  max-width: calc(100vw - 96px);
   max-height: calc(100vh - 72px);
   overflow: hidden;
-  padding: clamp(18px, 3vw, 34px);
+  padding: clamp(16px, 2.4vw, 28px);
   background: rgba(0, 0, 0, 0.54);
   border-radius: 8px;
-  overflow-wrap: anywhere;
-  word-break: normal;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
+  text-align: center;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
   opacity: 0;
   transform: translateY(10px);
@@ -317,7 +319,7 @@ textarea {
   right: clamp(18px, 3vw, 44px);
   bottom: 0;
   width: auto;
-  padding: clamp(24px, 5vw, 64px);
+  padding: clamp(18px, 3vw, 38px);
   background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0));
 }
 
@@ -333,11 +335,11 @@ textarea {
 .overlay-center {
   left: 50%;
   top: 50%;
-  width: min(760px, 72vw);
+  width: min(900px, calc(100vw - 96px));
   display: grid;
   place-content: center;
   text-align: center;
-  padding: clamp(24px, 6vw, 80px);
+  padding: clamp(18px, 3vw, 38px);
   background: rgba(0, 0, 0, 0.36);
   transform: translate(-50%, -50%);
   border-radius: 8px;
@@ -357,19 +359,27 @@ textarea {
 
 .slide-header {
   margin: 0;
-  font-size: clamp(42px, 7vw, 120px);
+  font-size: clamp(28px, 4.2vw, 72px);
   font-weight: 800;
-  line-height: 0.96;
+  line-height: 1.06;
   max-width: 100%;
   text-align: inherit;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
+  text-wrap: balance;
 }
 
 .slide-caption {
-  margin: 16px 0 0;
-  font-size: clamp(22px, 2.6vw, 46px);
-  line-height: 1.16;
+  margin: 12px 0 0;
+  font-size: clamp(16px, 1.8vw, 30px);
+  line-height: 1.22;
   max-width: 100%;
   text-align: inherit;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
+  text-wrap: balance;
 }
 
 .overlay-center .slide-header,
