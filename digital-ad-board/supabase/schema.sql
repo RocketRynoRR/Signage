@@ -30,12 +30,16 @@ create table if not exists public.ad_board_settings (
   brand_primary text not null default '#0f766e',
   brand_secondary text not null default '#073b36',
   brand_accent text not null default '#f6b453',
+  brand_colours jsonb not null default '["#0f766e", "#073b36", "#f6b453"]'::jsonb,
   updated_at timestamptz not null default now(),
   constraint ad_board_settings_single_row check (id = 1),
   constraint ad_board_settings_primary_hex check (brand_primary ~ '^#[0-9A-Fa-f]{6}$'),
   constraint ad_board_settings_secondary_hex check (brand_secondary ~ '^#[0-9A-Fa-f]{6}$'),
   constraint ad_board_settings_accent_hex check (brand_accent ~ '^#[0-9A-Fa-f]{6}$')
 );
+
+alter table public.ad_board_settings
+add column if not exists brand_colours jsonb not null default '["#0f766e", "#073b36", "#f6b453"]'::jsonb;
 
 alter table public.ad_board_slides enable row level security;
 alter table public.ad_board_logos enable row level security;

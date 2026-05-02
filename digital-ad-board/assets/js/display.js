@@ -42,6 +42,14 @@
     return items[Math.floor(Math.random() * items.length)];
   }
 
+  function normalizeColours(colours) {
+    const validColours = (Array.isArray(colours) ? colours : [])
+      .map((colour) => String(colour || "").trim())
+      .filter((colour) => /^#[0-9a-f]{6}$/i.test(colour));
+
+    return validColours.length ? validColours : ["#0f766e", "#073b36", "#f6b453"];
+  }
+
   function getOverlayClass(style) {
     if (style === "random") {
       return pickRandom(overlayClasses);
@@ -67,9 +75,18 @@
       return;
     }
 
-    document.documentElement.style.setProperty("--brand-matte", settings.brand_primary || "#0f766e");
-    document.documentElement.style.setProperty("--brand-matte-dark", settings.brand_secondary || "#073b36");
-    document.documentElement.style.setProperty("--brand-matte-warm", settings.brand_accent || "#f6b453");
+    const palette = normalizeColours(settings.brand_colours || [
+      settings.brand_primary,
+      settings.brand_secondary,
+      settings.brand_accent
+    ]);
+    const primary = pickRandom(palette);
+    const secondary = pickRandom(palette);
+    const accent = pickRandom(palette);
+
+    document.documentElement.style.setProperty("--brand-matte", primary);
+    document.documentElement.style.setProperty("--brand-matte-dark", secondary);
+    document.documentElement.style.setProperty("--brand-matte-warm", accent);
   }
 
   function getPublicImageUrl(imagePath) {

@@ -98,23 +98,8 @@
           <section class="panel settings-panel">
             <h2>Board Colours</h2>
             <form id="boardSettingsForm" class="form-grid">
-              <div class="colour-grid">
-                <label>
-                  Primary
-                  <input id="brandPrimaryInput" type="color" value="#0f766e">
-                  <span id="brandPrimaryValue" class="colour-value">#0f766e</span>
-                </label>
-                <label>
-                  Dark
-                  <input id="brandSecondaryInput" type="color" value="#073b36">
-                  <span id="brandSecondaryValue" class="colour-value">#073b36</span>
-                </label>
-                <label>
-                  Accent
-                  <input id="brandAccentInput" type="color" value="#f6b453">
-                  <span id="brandAccentValue" class="colour-value">#f6b453</span>
-                </label>
-              </div>
+              <div id="brandColourList" class="brand-colour-list"></div>
+              <button id="addBrandColourButton" class="button ghost" type="button">Add Colour</button>
               <div id="boardPreview" class="board-preview">
                 <span></span>
               </div>

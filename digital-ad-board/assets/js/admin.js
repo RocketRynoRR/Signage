@@ -6,12 +6,8 @@
   const slideForm = document.getElementById("slideForm");
   const logoForm = document.getElementById("logoForm");
   const boardSettingsForm = document.getElementById("boardSettingsForm");
-  const brandPrimaryInput = document.getElementById("brandPrimaryInput");
-  const brandSecondaryInput = document.getElementById("brandSecondaryInput");
-  const brandAccentInput = document.getElementById("brandAccentInput");
-  const brandPrimaryValue = document.getElementById("brandPrimaryValue");
-  const brandSecondaryValue = document.getElementById("brandSecondaryValue");
-  const brandAccentValue = document.getElementById("brandAccentValue");
+  const brandColourList = document.getElementById("brandColourList");
+  const addBrandColourButton = document.getElementById("addBrandColourButton");
   const boardPreview = document.getElementById("boardPreview");
   const signOutButton = document.getElementById("signOutButton");
   const slidesViewButton = document.getElementById("slidesViewButton");
@@ -27,6 +23,7 @@
   const messageArea = document.getElementById("messageArea");
 
   let supabaseClient;
+  let brandColours = ["#0f766e", "#073b36", "#f6b453"];
 
   function showMessage(message, isError) {
     messageArea.innerHTML = "";
@@ -72,27 +69,83 @@
     }
   }
 
+  function normalizeColours(colours) {
+    const validColours = (Array.isArray(colours) ? colours : [])
+      .map((colour) => String(colour || "").trim())
+      .filter((colour) => /^#[0-9a-f]{6}$/i.test(colour));
+
+    return validColours.length ? validColours : ["#0f766e", "#073b36", "#f6b453"];
+  }
+
+  function getBoardColourSet(colours) {
+    const palette = normalizeColours(colours);
+
+    return {
+      primary: palette[0],
+      secondary: palette[1] || palette[0],
+      accent: palette[2] || palette[0]
+    };
+  }
+
   function applyBoardColours(settings) {
-    const primary = settings.brand_primary || "#0f766e";
-    const secondary = settings.brand_secondary || "#073b36";
-    const accent = settings.brand_accent || "#f6b453";
+    const sourceColours = settings.brand_colours || [
+      settings.brand_primary,
+      settings.brand_secondary,
+      settings.brand_accent
+    ];
+    brandColours = normalizeColours(sourceColours);
+    const { primary, secondary, accent } = getBoardColourSet(brandColours);
 
     document.documentElement.style.setProperty("--brand-matte", primary);
     document.documentElement.style.setProperty("--brand-matte-dark", secondary);
     document.documentElement.style.setProperty("--brand-matte-warm", accent);
-    brandPrimaryInput.value = primary;
-    brandSecondaryInput.value = secondary;
-    brandAccentInput.value = accent;
-    brandPrimaryValue.textContent = primary;
-    brandSecondaryValue.textContent = secondary;
-    brandAccentValue.textContent = accent;
-
     boardPreview.style.borderColor = primary;
     boardPreview.style.background = `
       linear-gradient(135deg, ${accent} 0 10%, transparent 10% 34%, ${primary} 34% 38%, transparent 38%),
       linear-gradient(315deg, ${primary} 0 8%, transparent 8% 42%, ${accent} 42% 45%, transparent 45%),
       ${secondary}
     `;
+    renderBrandColourList();
+  }
+
+  function renderBrandColourList() {
+    brandColourList.innerHTML = "";
+
+    brandColours.forEach((colour, index) => {
+      const row = document.createElement("div");
+      row.className = "brand-colour-row";
+
+      const input = document.createElement("input");
+      input.type = "color";
+      input.value = colour;
+      input.setAttribute("aria-label", `Brand colour ${index + 1}`);
+      input.addEventListener("input", () => {
+        brandColours[index] = input.value;
+        applyBoardColours({ brand_colours: brandColours });
+      });
+
+      const value = document.createElement("span");
+      value.className = "colour-value";
+      value.textContent = colour;
+
+      const removeButton = document.createElement("button");
+      removeButton.className = "button ghost";
+      removeButton.type = "button";
+      removeButton.textContent = "Remove";
+      removeButton.disabled = brandColours.length <= 1;
+      removeButton.addEventListener("click", () => {
+        brandColours.splice(index, 1);
+        applyBoardColours({ brand_colours: brandColours });
+      });
+
+      row.append(input, value, removeButton);
+      brandColourList.appendChild(row);
+    });
+  }
+
+  function addBrandColour() {
+    brandColours.push("#ffffff");
+    applyBoardColours({ brand_colours: brandColours });
   }
 
   async function loadBoardSettings() {
@@ -115,9 +168,10 @@
 
     const settings = {
       id: 1,
-      brand_primary: brandPrimaryInput.value,
-      brand_secondary: brandSecondaryInput.value,
-      brand_accent: brandAccentInput.value
+      brand_primary: brandColours[0] || "#0f766e",
+      brand_secondary: brandColours[1] || brandColours[0] || "#073b36",
+      brand_accent: brandColours[2] || brandColours[0] || "#f6b453",
+      brand_colours: normalizeColours(brandColours)
     };
 
     const { error } = await supabaseClient
@@ -598,15 +652,7 @@
     slideForm.addEventListener("submit", uploadSlide);
     logoForm.addEventListener("submit", uploadLogo);
     boardSettingsForm.addEventListener("submit", saveBoardSettings);
-    [brandPrimaryInput, brandSecondaryInput, brandAccentInput].forEach((input) => {
-      input.addEventListener("input", () => {
-        applyBoardColours({
-          brand_primary: brandPrimaryInput.value,
-          brand_secondary: brandSecondaryInput.value,
-          brand_accent: brandAccentInput.value
-        });
-      });
-    });
+    addBrandColourButton.addEventListener("click", addBrandColour);
     signOutButton.addEventListener("click", signOut);
     slidesViewButton.addEventListener("click", () => showAdminView("slides"));
     settingsViewButton.addEventListener("click", () => showAdminView("settings"));
