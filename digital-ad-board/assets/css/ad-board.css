@@ -51,8 +51,7 @@ textarea {
 .slide-frame {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: block;
   width: 100%;
   height: 100%;
   padding: clamp(18px, 3vw, 46px);
@@ -137,6 +136,33 @@ textarea {
   background-size: 68px 68px;
 }
 
+.board-style-jigsaw {
+  background:
+    radial-gradient(circle at 25% 50%, var(--brand-matte-warm) 0 13px, transparent 14px),
+    radial-gradient(circle at 75% 50%, var(--brand-matte-dark) 0 13px, transparent 14px),
+    radial-gradient(circle at 50% 25%, var(--brand-matte) 0 13px, transparent 14px),
+    radial-gradient(circle at 50% 75%, var(--brand-matte-extra) 0 13px, transparent 14px),
+    linear-gradient(90deg, var(--brand-matte) 0 48%, transparent 48% 52%, var(--brand-matte-warm) 52%),
+    linear-gradient(0deg, transparent 0 48%, rgba(255, 255, 255, 0.18) 48% 52%, transparent 52%),
+    var(--brand-matte-dark);
+  background-size: 150px 150px;
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+}
+
+.board-style-puzzle-scatter {
+  background:
+    radial-gradient(circle at 18% 30%, var(--brand-matte) 0 18px, transparent 19px),
+    radial-gradient(circle at 32% 30%, var(--brand-matte-dark) 0 18px, transparent 19px),
+    linear-gradient(90deg, transparent 0 12%, var(--brand-matte-warm) 12% 28%, transparent 28%),
+    linear-gradient(0deg, transparent 0 18%, var(--brand-matte-warm) 18% 34%, transparent 34%),
+    radial-gradient(circle at 72% 68%, var(--brand-matte-extra) 0 20px, transparent 21px),
+    radial-gradient(circle at 86% 68%, var(--brand-matte-dark) 0 20px, transparent 21px),
+    linear-gradient(90deg, transparent 0 66%, var(--brand-matte) 66% 82%, transparent 82%),
+    linear-gradient(0deg, transparent 0 58%, var(--brand-matte) 58% 74%, transparent 74%),
+    var(--brand-matte-dark);
+  background-size: 320px 220px;
+}
+
 .slide-frame::before {
   content: "";
   position: absolute;
@@ -147,7 +173,7 @@ textarea {
 }
 
 .slide-image-box {
-  position: relative;
+  position: absolute;
   z-index: 1;
   --slide-box-width: 900px;
   --slide-box-height: 520px;
@@ -158,6 +184,7 @@ textarea {
   overflow: hidden;
   min-width: 0;
   min-height: 0;
+  transition: left 500ms ease, top 500ms ease, width 500ms ease, height 500ms ease;
 }
 
 .slide-image {
@@ -231,12 +258,20 @@ textarea {
 }
 
 .overlay-center {
-  inset: 0;
+  left: 50%;
+  top: 50%;
+  width: min(760px, 72vw);
   display: grid;
   place-content: center;
   text-align: center;
   padding: clamp(24px, 6vw, 80px);
   background: rgba(0, 0, 0, 0.36);
+  transform: translate(-50%, -50%);
+  border-radius: 8px;
+}
+
+.overlay-center.is-visible {
+  transform: translate(-50%, -50%);
 }
 
 .overlay-minimal {

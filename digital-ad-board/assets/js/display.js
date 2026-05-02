@@ -15,7 +15,9 @@
     "board-style-dashes",
     "board-style-waves",
     "board-style-confetti",
-    "board-style-checks"
+    "board-style-checks",
+    "board-style-jigsaw",
+    "board-style-puzzle-scatter"
   ];
 
   const config = window.AD_BOARD_SUPABASE;
@@ -37,6 +39,7 @@
   let exitSequence = "";
   let currentBoxScale = 0.86;
   let brandPalette = ["#0f766e", "#073b36", "#f6b453"];
+  let currentOverlayClass = "overlay-bottom";
 
   function showStatus(message) {
     statusBanner.textContent = message;
@@ -71,6 +74,7 @@
     slideOverlay.classList.remove(...overlayClasses);
     const overlayClass = getOverlayClass(style);
     slideOverlay.classList.add(overlayClass);
+    currentOverlayClass = overlayClass;
     return overlayClass;
   }
 
@@ -93,8 +97,9 @@
     document.documentElement.style.setProperty("--brand-matte-extra", extra);
   }
 
-  function setRandomImageBox() {
-    currentBoxScale = pickRandom([0.62, 0.7, 0.78, 0.84, 0.9]);
+  function setRandomImageBox(overlayClass) {
+    currentOverlayClass = overlayClass || currentOverlayClass;
+    currentBoxScale = pickRandom([0.5, 0.58, 0.66, 0.74, 0.82]);
     applySafeImageBox();
   }
 
@@ -119,6 +124,55 @@
 
     slideImageBox.style.setProperty("--slide-box-width", `${boxWidth}px`);
     slideImageBox.style.setProperty("--slide-box-height", `${boxHeight}px`);
+    placeImageBox(boxWidth, boxHeight, currentOverlayClass);
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function placeImageBox(boxWidth, boxHeight, overlayClass) {
+    const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    const maxLeft = Math.max(margin, window.innerWidth - boxWidth - margin);
+    const maxTop = Math.max(margin, window.innerHeight - boxHeight - margin);
+    const centerLeft = (window.innerWidth - boxWidth) / 2;
+    const centerTop = (window.innerHeight - boxHeight) / 2;
+    const topSafe = margin + Math.max(96, window.innerHeight * 0.08);
+    const bottomSafe = Math.max(margin, window.innerHeight - boxHeight - Math.max(170, window.innerHeight * 0.28));
+    const rightSafe = Math.max(margin, window.innerWidth - boxWidth - Math.max(120, window.innerWidth * 0.1));
+
+    const positionsByOverlay = {
+      "overlay-bottom": [
+        { left: margin, top: margin },
+        { left: centerLeft, top: margin },
+        { left: rightSafe, top: margin },
+        { left: centerLeft, top: bottomSafe }
+      ],
+      "overlay-top-left": [
+        { left: rightSafe, top: centerTop },
+        { left: rightSafe, top: maxTop },
+        { left: centerLeft, top: maxTop },
+        { left: Math.max(window.innerWidth * 0.44, margin), top: topSafe }
+      ],
+      "overlay-center": [
+        { left: margin, top: margin },
+        { left: rightSafe, top: margin },
+        { left: margin, top: maxTop },
+        { left: rightSafe, top: maxTop }
+      ],
+      "overlay-minimal": [
+        { left: margin, top: margin },
+        { left: centerLeft, top: margin },
+        { left: margin, top: centerTop },
+        { left: margin, top: maxTop }
+      ]
+    };
+    const position = pickRandom(positionsByOverlay[overlayClass] || positionsByOverlay["overlay-bottom"]);
+    const left = clamp(position.left, margin, maxLeft);
+    const top = clamp(position.top, margin, maxTop);
+
+    slideImageBox.style.left = `${Math.round(left)}px`;
+    slideImageBox.style.top = `${Math.round(top)}px`;
   }
 
   function applyBoardColours(settings) {
@@ -159,8 +213,8 @@
       slideHeader.textContent = header;
       slideCaption.textContent = caption;
       setRandomBoardStyle();
-      setRandomImageBox();
-      setOverlayStyle(slide.overlay_style);
+      const overlayClass = setOverlayStyle(slide.overlay_style);
+      setRandomImageBox(overlayClass);
 
       slideImage.classList.add("is-visible");
       slideOverlay.classList.toggle("is-visible", Boolean(header || caption));
