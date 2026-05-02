@@ -142,6 +142,8 @@
       }
     }
 
+    boxWidth = Math.min(boxWidth, window.innerWidth - margin * 2);
+    boxHeight = Math.min(boxHeight, window.innerHeight - margin * 2);
     slideImageBox.style.setProperty("--slide-box-width", `${boxWidth}px`);
     slideImageBox.style.setProperty("--slide-box-height", `${boxHeight}px`);
     placeImageBox(boxWidth, boxHeight, currentImageZone);
@@ -209,6 +211,8 @@
 
   function placeImageBox(boxWidth, boxHeight, zone) {
     const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    boxWidth = Math.min(boxWidth, window.innerWidth - margin * 2);
+    boxHeight = Math.min(boxHeight, window.innerHeight - margin * 2);
     const centerLeft = (window.innerWidth - boxWidth) / 2;
     const centerTop = (window.innerHeight - boxHeight) / 2;
     const wiggleX = Math.max(18, (window.innerWidth - boxWidth) * 0.16);
@@ -274,8 +278,7 @@
     }
 
     if (activeImageElement === slideGroup) {
-      slideGroup.style.left = "44%";
-      slideGroup.style.top = "54%";
+      placeGroupAwayFromLogo(logoRect, padding);
       return;
     }
 
@@ -361,6 +364,9 @@
       { left: window.innerWidth - overlayRect.width - margin, top: (window.innerHeight - overlayRect.height) / 2 }
     ];
 
+    let fallback = null;
+    let fallbackOverlapRatio = Number.POSITIVE_INFINITY;
+
     for (const candidate of candidates) {
       const left = clamp(candidate.left, margin, window.innerWidth - overlayRect.width - margin);
       const top = clamp(candidate.top, margin, window.innerHeight - overlayRect.height - margin);
@@ -374,6 +380,8 @@
       };
       const touchesLogo = logoRect && rectsOverlap(rect, logoRect);
       const touchesImage = imageRects.some((imageRect) => rectsOverlap(rect, imageRect));
+      const overlapRatio = imageRects.reduce((total, imageRect) =>
+        total + (getOverlapArea(rect, imageRect) / getRectArea(imageRect)), 0);
 
       if (!touchesLogo && !touchesImage && rectIsInsideViewport(rect, margin)) {
         slideOverlay.classList.add(...previousClasses);
@@ -384,11 +392,47 @@
         slideOverlay.style.transform = "none";
         return true;
       }
+
+      if (!touchesLogo && rectIsInsideViewport(rect, margin) && overlapRatio < fallbackOverlapRatio) {
+        fallback = { left, top };
+        fallbackOverlapRatio = overlapRatio;
+      }
     }
 
-    slideOverlay.classList.add(...previousClasses);
-    slideOverlay.removeAttribute("style");
-    return false;
+    if (fallback && fallbackOverlapRatio <= 0.22) {
+      slideOverlay.classList.add(...previousClasses, "caption-over-image");
+      slideOverlay.style.left = `${Math.round(fallback.left)}px`;
+      slideOverlay.style.top = `${Math.round(fallback.top)}px`;
+      slideOverlay.style.right = "auto";
+      slideOverlay.style.bottom = "auto";
+      slideOverlay.style.transform = "none";
+      return true;
+    }
+
+    slideOverlay.classList.add(...previousClasses, "caption-over-image");
+    const maxLeft = Math.max(margin, window.innerWidth - overlayRect.width - margin);
+    const maxTop = Math.max(margin, window.innerHeight - overlayRect.height - margin);
+    const left = clamp(margin, margin, maxLeft);
+    const top = clamp(window.innerHeight - overlayRect.height - margin, margin, maxTop);
+    const emergencyRect = {
+      left,
+      top,
+      right: left + overlayRect.width,
+      bottom: top + overlayRect.height,
+      width: overlayRect.width,
+      height: overlayRect.height
+    };
+
+    if (logoRect && rectsOverlap(emergencyRect, logoRect)) {
+      return false;
+    }
+
+    slideOverlay.style.left = `${Math.round(left)}px`;
+    slideOverlay.style.top = `${Math.round(top)}px`;
+    slideOverlay.style.right = "auto";
+    slideOverlay.style.bottom = "auto";
+    slideOverlay.style.transform = "none";
+    return rectIsInsideViewport(emergencyRect, margin);
   }
 
   function resolveLayoutCollisions() {
@@ -451,6 +495,7 @@
 
       slideHeader.textContent = header;
       slideCaption.textContent = caption;
+      showLogo(logo);
       setRandomBoardStyle();
       const overlayClass = setOverlayStyle(overlayStyle);
       if (slideSet.length > 1) {
@@ -461,7 +506,6 @@
 
       slideImage.classList.toggle("is-visible", slideSet.length === 1);
       slideOverlay.classList.toggle("is-visible", Boolean(header || caption));
-      showLogo(logo);
       resolveLayoutCollisions();
       emptyState.hidden = true;
     }, 250);
@@ -533,8 +577,8 @@
     const logoReserve = slideLogo.classList.contains("is-visible")
       ? slideLogo.getBoundingClientRect().width + margin * 2
       : Math.max(230, window.innerWidth * 0.15);
-    const maxWidth = Math.max(window.innerWidth * 0.62, window.innerWidth - margin * 2 - logoReserve * 0.35);
-    const maxHeight = window.innerHeight - margin * 2;
+    const maxWidth = Math.min(window.innerWidth - margin * 2, Math.max(window.innerWidth * 0.62, window.innerWidth - margin * 2 - logoReserve * 0.35));
+    const maxHeight = Math.min(window.innerHeight - margin * 2, window.innerHeight * 0.82);
     const targetArea = window.innerWidth * window.innerHeight * 0.8;
     const groupRatio = count <= 2 ? 16 / 7 : count <= 4 ? 16 / 10 : 16 / 9;
     let width = Math.min(maxWidth, Math.sqrt(targetArea * groupRatio));
@@ -551,6 +595,40 @@
     if (overlayClass === "overlay-bottom") {
       slideGroup.style.top = "44%";
     }
+
+    clampSlideGroupInsideViewport();
+  }
+
+  function clampSlideGroupInsideViewport() {
+    const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    const rect = slideGroup.getBoundingClientRect();
+    const centerX = clamp(
+      rect.left + rect.width / 2,
+      margin + rect.width / 2,
+      window.innerWidth - margin - rect.width / 2
+    );
+    const centerY = clamp(
+      rect.top + rect.height / 2,
+      margin + rect.height / 2,
+      window.innerHeight - margin - rect.height / 2
+    );
+
+    slideGroup.style.left = `${Math.round(centerX)}px`;
+    slideGroup.style.top = `${Math.round(centerY)}px`;
+  }
+
+  function placeGroupAwayFromLogo(logoRect, padding) {
+    const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    const maxWidth = Math.max(360, logoRect.left - margin - padding);
+    const currentRect = slideGroup.getBoundingClientRect();
+    const width = Math.min(currentRect.width, maxWidth);
+    const height = Math.min(currentRect.height, window.innerHeight - margin * 2);
+
+    slideGroup.style.width = `${Math.round(width)}px`;
+    slideGroup.style.height = `${Math.round(height)}px`;
+    slideGroup.style.left = `${Math.round(margin + width / 2)}px`;
+    slideGroup.style.top = "50%";
+    clampSlideGroupInsideViewport();
   }
 
   function showLogo(logo) {
