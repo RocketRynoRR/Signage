@@ -113,14 +113,36 @@
     document.documentElement.style.setProperty("--brand-matte-warm", accent);
     if (boardPreview) {
       boardPreview.style.borderColor = primary;
-      boardPreview.style.background = `
-        linear-gradient(135deg, ${accent} 0 10%, transparent 10% 34%, ${primary} 34% 38%, transparent 38%),
-        linear-gradient(315deg, ${primary} 0 8%, transparent 8% 42%, ${accent} 42% 45%, transparent 45%),
-        ${secondary}
-      `;
+      boardPreview.style.background = buildPreviewBackground(brandColours);
     }
 
     renderBrandColourList();
+  }
+
+  function buildPreviewBackground(colours) {
+    const palette = normalizeColours(colours);
+    const stripeSize = Math.max(8, Math.floor(100 / palette.length));
+    const stripeStops = palette
+      .map((colour, index) => {
+        const start = index * stripeSize;
+        const end = index === palette.length - 1 ? 100 : (index + 1) * stripeSize;
+        return `${colour} ${start}% ${end}%`;
+      })
+      .join(", ");
+    const bubbles = palette
+      .map((colour, index) => {
+        const x = 12 + ((index * 23) % 76);
+        const y = 18 + ((index * 31) % 64);
+        const radius = 5 + (index % 4);
+        return `radial-gradient(circle at ${x}% ${y}%, ${colour} 0 ${radius}%, transparent ${radius + 0.6}%)`;
+      })
+      .join(", ");
+
+    return `
+      ${bubbles},
+      repeating-linear-gradient(135deg, ${stripeStops}),
+      ${palette[1] || palette[0]}
+    `;
   }
 
   function renderBrandColourList() {
@@ -143,9 +165,24 @@
         applyBoardColours({ brand_colours: brandColours });
       });
 
-      const value = document.createElement("span");
-      value.className = "colour-value";
-      value.textContent = colour;
+      const value = document.createElement("input");
+      value.className = "colour-value colour-text-input";
+      value.type = "text";
+      value.value = colour;
+      value.maxLength = 7;
+      value.spellcheck = false;
+      value.setAttribute("aria-label", `Brand colour ${index + 1} hex value`);
+      value.addEventListener("input", () => {
+        const nextColour = value.value.trim();
+
+        if (/^#[0-9a-f]{6}$/i.test(nextColour)) {
+          brandColours[index] = nextColour;
+          applyBoardColours({ brand_colours: brandColours });
+        }
+      });
+      value.addEventListener("blur", () => {
+        value.value = brandColours[index];
+      });
 
       const removeButton = document.createElement("button");
       removeButton.className = "button ghost";

@@ -9,6 +9,7 @@
   --brand-matte: #0f766e;
   --brand-matte-dark: #073b36;
   --brand-matte-warm: #f6b453;
+  --brand-matte-extra: #c10b0b;
   --danger: #b42318;
   --shadow: 0 14px 40px rgba(20, 20, 20, 0.12);
 }
@@ -93,12 +94,13 @@ textarea {
     radial-gradient(circle at 78% 24%, var(--brand-matte) 0 6%, transparent 6.2%),
     radial-gradient(circle at 88% 76%, var(--brand-matte-warm) 0 5%, transparent 5.2%),
     radial-gradient(circle at 22% 82%, var(--brand-matte) 0 7%, transparent 7.2%),
+    radial-gradient(circle at 52% 58%, var(--brand-matte-extra) 0 6%, transparent 6.2%),
     var(--brand-matte-dark);
 }
 
 .board-style-stripes {
   background:
-    repeating-linear-gradient(135deg, var(--brand-matte-dark) 0 22px, var(--brand-matte-dark) 22px 44px, var(--brand-matte) 44px 50px, var(--brand-matte-warm) 50px 56px);
+    repeating-linear-gradient(135deg, var(--brand-matte-dark) 0 22px, var(--brand-matte-dark) 22px 44px, var(--brand-matte) 44px 50px, var(--brand-matte-warm) 50px 56px, var(--brand-matte-extra) 56px 62px);
 }
 
 .board-style-dashes {
@@ -106,6 +108,7 @@ textarea {
     radial-gradient(circle at center, transparent 0 38%, rgba(0, 0, 0, 0.2) 38% 100%),
     repeating-linear-gradient(90deg, var(--brand-matte) 0 34px, transparent 34px 56px),
     repeating-linear-gradient(0deg, transparent 0 42px, var(--brand-matte-warm) 42px 50px, transparent 50px 76px),
+    repeating-linear-gradient(135deg, transparent 0 30px, var(--brand-matte-extra) 30px 36px, transparent 36px 72px),
     var(--brand-matte-dark);
 }
 
@@ -113,6 +116,7 @@ textarea {
   background:
     radial-gradient(ellipse at 20% 120%, transparent 0 38%, var(--brand-matte) 38.5% 44%, transparent 44.5%),
     radial-gradient(ellipse at 78% -20%, transparent 0 34%, var(--brand-matte-warm) 34.5% 40%, transparent 40.5%),
+    radial-gradient(ellipse at 110% 50%, transparent 0 28%, var(--brand-matte-extra) 28.5% 33%, transparent 33.5%),
     repeating-radial-gradient(ellipse at center, var(--brand-matte-dark) 0 34px, var(--brand-matte-dark) 34px 68px, var(--brand-matte) 68px 74px, var(--brand-matte-dark) 74px 110px);
 }
 
@@ -145,8 +149,6 @@ textarea {
 .slide-image-box {
   position: relative;
   z-index: 1;
-  display: grid;
-  place-items: center;
   --slide-box-width: 900px;
   --slide-box-height: 520px;
   width: var(--slide-box-width);
@@ -154,17 +156,19 @@ textarea {
   max-width: 100%;
   max-height: 100%;
   overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 
 .slide-image {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
   display: block;
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  object-position: center center;
   opacity: 0;
   transition: opacity 700ms ease;
 }
@@ -433,7 +437,7 @@ textarea {
 
 .brand-colour-row {
   display: grid;
-  grid-template-columns: 64px 1fr auto;
+  grid-template-columns: 64px minmax(112px, 1fr) auto;
   gap: 10px;
   align-items: center;
 }
@@ -441,6 +445,7 @@ textarea {
 .brand-colour-row input[type="color"] {
   height: 48px;
   padding: 4px;
+  cursor: pointer;
 }
 
 .colour-value {
@@ -456,6 +461,11 @@ textarea {
   font-family: Consolas, "Courier New", monospace;
   font-size: 13px;
   font-weight: 700;
+}
+
+.colour-text-input {
+  width: 100%;
+  min-height: 38px;
 }
 
 .board-preview {
@@ -474,7 +484,9 @@ textarea {
   width: min(62%, 260px);
   aspect-ratio: 16 / 9;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.84);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.62)),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0 20px, rgba(255, 255, 255, 0.2) 20px 40px);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25);
 }
 

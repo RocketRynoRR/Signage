@@ -85,10 +85,12 @@
     const primary = pickRandom(palette);
     const secondary = pickRandom(palette);
     const accent = pickRandom(palette);
+    const extra = pickRandom(palette);
 
     document.documentElement.style.setProperty("--brand-matte", primary);
     document.documentElement.style.setProperty("--brand-matte-dark", secondary);
     document.documentElement.style.setProperty("--brand-matte-warm", accent);
+    document.documentElement.style.setProperty("--brand-matte-extra", extra);
   }
 
   function setRandomImageBox() {
@@ -101,8 +103,19 @@
     const safeMarginY = Math.max(130, Math.round(window.innerHeight * 0.22));
     const availableWidth = Math.max(220, window.innerWidth - safeMarginX);
     const availableHeight = Math.max(220, window.innerHeight - safeMarginY);
-    const boxWidth = Math.floor(availableWidth * currentBoxScale);
-    const boxHeight = Math.floor(availableHeight * currentBoxScale);
+    let boxWidth = Math.floor(availableWidth * currentBoxScale);
+    let boxHeight = Math.floor(availableHeight * currentBoxScale);
+
+    if (slideImage.naturalWidth && slideImage.naturalHeight) {
+      const imageRatio = slideImage.naturalWidth / slideImage.naturalHeight;
+      const boxRatio = boxWidth / boxHeight;
+
+      if (imageRatio > boxRatio) {
+        boxHeight = Math.floor(boxWidth / imageRatio);
+      } else {
+        boxWidth = Math.floor(boxHeight * imageRatio);
+      }
+    }
 
     slideImageBox.style.setProperty("--slide-box-width", `${boxWidth}px`);
     slideImageBox.style.setProperty("--slide-box-height", `${boxHeight}px`);
