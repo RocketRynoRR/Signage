@@ -9,7 +9,13 @@
     "board-style-angled",
     "board-style-ribbon",
     "board-style-corners",
-    "board-style-bands"
+    "board-style-bands",
+    "board-style-bubbles",
+    "board-style-stripes",
+    "board-style-dashes",
+    "board-style-waves",
+    "board-style-confetti",
+    "board-style-checks"
   ];
 
   const config = window.AD_BOARD_SUPABASE;
@@ -70,6 +76,11 @@
     slideFrame.classList.add(pickRandom(boardStyleClasses));
   }
 
+  function setRandomImageScale() {
+    const scaleOptions = [0.72, 0.78, 0.84, 0.9, 0.96];
+    slideFrame.style.setProperty("--slide-image-scale", String(pickRandom(scaleOptions)));
+  }
+
   function applyBoardColours(settings) {
     if (!settings) {
       return;
@@ -113,6 +124,7 @@
       slideHeader.textContent = header;
       slideCaption.textContent = caption;
       setRandomBoardStyle();
+      setRandomImageScale();
       setOverlayStyle(slide.overlay_style);
 
       slideImage.classList.add("is-visible");

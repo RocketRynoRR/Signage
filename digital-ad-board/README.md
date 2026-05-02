@@ -70,7 +70,7 @@ The display page also shuffles the active slides each time it loops through the 
 
 Images are shown inside a branded matte/frame so the full image is always visible and never cropped.
 
-Board colours can be added, removed, and saved in the admin Settings view. The display page uses those saved colours and randomly switches between several board background styles.
+Board colours can be added, removed, and saved in the admin Settings view. The display page uses those saved colours and randomly switches between several board background styles, including angled bands, bubbles, stripes, dashes, waves, confetti, and checks.
 
 ## Logos
 
