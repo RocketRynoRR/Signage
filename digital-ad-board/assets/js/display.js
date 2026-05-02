@@ -7,17 +7,21 @@
   ];
 
   const config = window.AD_BOARD_SUPABASE;
+  const slideFrame = document.getElementById("slideFrame");
   const slideImage = document.getElementById("slideImage");
   const slideOverlay = document.getElementById("slideOverlay");
   const slideHeader = document.getElementById("slideHeader");
   const slideCaption = document.getElementById("slideCaption");
+  const slideLogo = document.getElementById("slideLogo");
   const emptyState = document.getElementById("emptyState");
   const statusBanner = document.getElementById("statusBanner");
 
   let supabaseClient;
   let slides = [];
+  let logos = [];
   let currentIndex = -1;
   let timerId;
+  let exitSequence = "";
 
   function showStatus(message) {
     statusBanner.textContent = message;
@@ -40,9 +44,22 @@
     return `overlay-${style || "bottom"}`;
   }
 
+  function getLogoClass(overlayClass) {
+    const positionsByOverlay = {
+      "overlay-bottom": ["logo-top-right", "logo-top-left"],
+      "overlay-top-left": ["logo-bottom-right", "logo-top-right"],
+      "overlay-center": ["logo-top-right", "logo-bottom-right"],
+      "overlay-minimal": ["logo-top-left", "logo-top-right"]
+    };
+
+    return pickRandom(positionsByOverlay[overlayClass] || positionsByOverlay["overlay-bottom"]);
+  }
+
   function setOverlayStyle(style) {
     slideOverlay.classList.remove(...overlayClasses);
-    slideOverlay.classList.add(getOverlayClass(style));
+    const overlayClass = getOverlayClass(style);
+    slideOverlay.classList.add(overlayClass);
+    return overlayClass;
   }
 
   function getPublicImageUrl(imagePath) {
@@ -57,21 +74,49 @@
     const imageUrl = getPublicImageUrl(slide.image_path);
     const header = slide.header || "";
     const caption = slide.caption || "";
+    const logo = logos.length ? pickRandom(logos) : null;
 
     slideOverlay.classList.remove("is-visible");
     slideImage.classList.remove("is-visible");
+    slideLogo.classList.remove("is-visible");
 
     window.setTimeout(() => {
+      slideImage.onload = applyImageFitMode;
       slideImage.src = imageUrl;
       slideImage.alt = header || caption || "Advert slide";
       slideHeader.textContent = header;
       slideCaption.textContent = caption;
-      setOverlayStyle(slide.overlay_style);
+      const overlayClass = setOverlayStyle(slide.overlay_style);
 
       slideImage.classList.add("is-visible");
       slideOverlay.classList.toggle("is-visible", Boolean(header || caption));
+      showLogo(logo, overlayClass);
       emptyState.hidden = true;
     }, 250);
+  }
+
+  function applyImageFitMode() {
+    const imageRatio = slideImage.naturalWidth / slideImage.naturalHeight;
+    const screenRatio = window.innerWidth / window.innerHeight;
+    const ratioDifference = Math.abs(imageRatio - screenRatio) / screenRatio;
+    const needsMatte = ratioDifference > 0.12;
+
+    slideFrame.classList.toggle("needs-matte", needsMatte);
+    slideFrame.classList.toggle("fill-screen", !needsMatte);
+  }
+
+  function showLogo(logo, overlayClass) {
+    slideLogo.classList.remove("logo-top-right", "logo-top-left", "logo-bottom-right");
+
+    if (!logo) {
+      slideLogo.removeAttribute("src");
+      slideLogo.alt = "";
+      return;
+    }
+
+    slideLogo.src = getPublicImageUrl(logo.image_path);
+    slideLogo.alt = logo.name || "Logo";
+    slideLogo.classList.add(getLogoClass(overlayClass), "is-visible");
   }
 
   function scheduleNextSlide(slide) {
@@ -85,6 +130,7 @@
       emptyState.hidden = false;
       slideImage.classList.remove("is-visible");
       slideOverlay.classList.remove("is-visible");
+      slideLogo.classList.remove("is-visible");
       return;
     }
 
@@ -118,15 +164,65 @@
     showNextSlide();
   }
 
-  function init() {
+  async function loadLogos() {
+    const { data, error } = await supabaseClient
+      .from("ad_board_logos")
+      .select("*")
+      .eq("active", true)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      showStatus("Slides loaded, but logos could not load.");
+      logos = [];
+      return;
+    }
+
+    logos = data || [];
+  }
+
+  function exitToAdmin() {
+    window.location.href = "admin.html";
+  }
+
+  function setupHiddenExitControls() {
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        exitToAdmin();
+        return;
+      }
+
+      if (event.key.length !== 1) {
+        return;
+      }
+
+      exitSequence = `${exitSequence}${event.key.toLowerCase()}`.slice(-5);
+
+      if (exitSequence === "admin") {
+        exitToAdmin();
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      if (slideImage.naturalWidth && slideImage.naturalHeight) {
+        applyImageFitMode();
+      }
+    });
+  }
+
+  async function init() {
     if (!config || !config.url || !config.anonKey) {
       showStatus("Missing Supabase config file.");
       return;
     }
 
     supabaseClient = window.supabase.createClient(config.url, config.anonKey);
-    loadSlides();
-    window.setInterval(loadSlides, 5 * 60 * 1000);
+    setupHiddenExitControls();
+    await loadLogos();
+    await loadSlides();
+    window.setInterval(async () => {
+      await loadLogos();
+      await loadSlides();
+    }, 5 * 60 * 1000);
   }
 
   init();

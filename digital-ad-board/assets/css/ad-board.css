@@ -6,6 +6,9 @@
   --panel: #ffffff;
   --accent: #0f766e;
   --accent-dark: #115e59;
+  --brand-matte: #0f766e;
+  --brand-matte-dark: #073b36;
+  --brand-matte-warm: #f6b453;
   --danger: #b42318;
   --shadow: 0 14px 40px rgba(20, 20, 20, 0.12);
 }
@@ -40,14 +43,46 @@ textarea {
   background: #050505;
 }
 
-.slide-image {
+.slide-frame {
   position: absolute;
   inset: 0;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: #050505;
+  transition: background 400ms ease, padding 400ms ease;
+}
+
+.slide-frame.needs-matte {
+  padding: clamp(18px, 3vw, 46px);
+  background:
+    linear-gradient(135deg, rgba(246, 180, 83, 0.28), transparent 34%),
+    linear-gradient(315deg, rgba(15, 118, 110, 0.46), transparent 42%),
+    var(--brand-matte-dark);
+}
+
+.slide-frame.needs-matte::before {
+  content: "";
+  position: absolute;
+  inset: clamp(10px, 1.5vw, 22px);
+  border: clamp(6px, 1vw, 14px) solid var(--brand-matte);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.18), 0 16px 60px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.slide-image {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: cover;
   opacity: 0;
   transition: opacity 700ms ease;
+}
+
+.slide-frame.needs-matte .slide-image {
+  object-fit: contain;
 }
 
 .slide-image.is-visible {
@@ -67,6 +102,36 @@ textarea {
 .slide-overlay.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+.slide-logo {
+  position: absolute;
+  z-index: 3;
+  max-width: min(18vw, 240px);
+  max-height: min(16vh, 150px);
+  object-fit: contain;
+  opacity: 0;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.38));
+  transition: opacity 500ms ease;
+}
+
+.slide-logo.is-visible {
+  opacity: 1;
+}
+
+.logo-top-right {
+  top: clamp(18px, 3vw, 44px);
+  right: clamp(18px, 3vw, 44px);
+}
+
+.logo-top-left {
+  top: clamp(18px, 3vw, 44px);
+  left: clamp(18px, 3vw, 44px);
+}
+
+.logo-bottom-right {
+  right: clamp(18px, 3vw, 44px);
+  bottom: clamp(18px, 3vw, 44px);
 }
 
 .overlay-bottom {
@@ -310,7 +375,8 @@ textarea {
   gap: 14px;
 }
 
-.slide-card {
+.slide-card,
+.logo-card {
   display: grid;
   grid-template-columns: 160px 1fr;
   gap: 16px;
@@ -320,12 +386,27 @@ textarea {
   background: #fff;
 }
 
-.slide-thumb {
+.slide-thumb,
+.logo-thumb {
   width: 100%;
   aspect-ratio: 16 / 10;
   object-fit: cover;
   border-radius: 6px;
   background: #eee;
+}
+
+.logo-thumb {
+  object-fit: contain;
+  padding: 12px;
+}
+
+.logo-list {
+  display: grid;
+  gap: 14px;
+}
+
+.logo-name {
+  margin: 0;
 }
 
 .slide-card-body {
@@ -378,6 +459,7 @@ textarea {
 
   .admin-layout,
   .slide-card,
+  .logo-card,
   .form-row {
     grid-template-columns: 1fr;
   }

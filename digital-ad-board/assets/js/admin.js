@@ -4,9 +4,12 @@
   const adminPanel = document.getElementById("adminPanel");
   const loginForm = document.getElementById("loginForm");
   const slideForm = document.getElementById("slideForm");
+  const logoForm = document.getElementById("logoForm");
   const signOutButton = document.getElementById("signOutButton");
   const refreshButton = document.getElementById("refreshButton");
+  const refreshLogosButton = document.getElementById("refreshLogosButton");
   const slideList = document.getElementById("slideList");
+  const logoList = document.getElementById("logoList");
   const messageArea = document.getElementById("messageArea");
 
   let supabaseClient;
@@ -50,6 +53,7 @@
 
     if (signedIn) {
       await loadSlides();
+      await loadLogos();
     }
   }
 
@@ -182,6 +186,70 @@
     });
   }
 
+  async function loadLogos() {
+    const { data, error } = await supabaseClient
+      .from("ad_board_logos")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      showMessage(error.message, true);
+      return;
+    }
+
+    renderLogos(data || []);
+  }
+
+  function renderLogos(logos) {
+    logoList.innerHTML = "";
+
+    if (!logos.length) {
+      logoList.textContent = "No logos uploaded yet.";
+      return;
+    }
+
+    logos.forEach((logo) => {
+      const card = document.createElement("article");
+      card.className = "logo-card";
+
+      const image = document.createElement("img");
+      image.className = "logo-thumb";
+      image.src = getPublicImageUrl(logo.image_path);
+      image.alt = logo.name || "Logo";
+
+      const body = document.createElement("div");
+      body.className = "slide-card-body";
+
+      const name = document.createElement("h3");
+      name.className = "logo-name";
+      name.textContent = logo.name || "Untitled logo";
+
+      const meta = document.createElement("div");
+      meta.className = "slide-card-meta";
+      meta.textContent = logo.active ? "Active" : "Hidden";
+
+      const actions = document.createElement("div");
+      actions.className = "slide-card-actions";
+
+      const toggleButton = document.createElement("button");
+      toggleButton.className = "button ghost";
+      toggleButton.type = "button";
+      toggleButton.textContent = logo.active ? "Hide" : "Activate";
+      toggleButton.addEventListener("click", () => toggleLogo(logo));
+
+      const deleteButton = document.createElement("button");
+      deleteButton.className = "button danger";
+      deleteButton.type = "button";
+      deleteButton.textContent = "Delete";
+      deleteButton.addEventListener("click", () => deleteLogo(logo));
+
+      actions.append(toggleButton, deleteButton);
+      body.append(name, meta, actions);
+      card.append(image, body);
+      logoList.appendChild(card);
+    });
+  }
+
   async function saveSlideEdits(event, slide) {
     event.preventDefault();
 
@@ -206,6 +274,54 @@
 
     showMessage("Slide saved.", false);
     await loadSlides();
+  }
+
+  async function uploadLogo(event) {
+    event.preventDefault();
+    showMessage("Uploading logo...", false);
+
+    const file = document.getElementById("logoInput").files[0];
+    const name = document.getElementById("logoNameInput").value.trim();
+    const active = document.getElementById("logoActiveInput").checked;
+
+    if (!file) {
+      showMessage("Choose a logo image first.", true);
+      return;
+    }
+
+    const extension = file.name.split(".").pop();
+    const safeName = slugify(file.name.replace(/\.[^.]+$/, "")) || "logo";
+    const imagePath = `logos/${Date.now()}-${safeName}.${extension}`;
+
+    const uploadResult = await supabaseClient.storage
+      .from(config.storageBucket)
+      .upload(imagePath, file, {
+        cacheControl: "3600",
+        upsert: false
+      });
+
+    if (uploadResult.error) {
+      showMessage(uploadResult.error.message, true);
+      return;
+    }
+
+    const insertResult = await supabaseClient
+      .from("ad_board_logos")
+      .insert({
+        image_path: imagePath,
+        name,
+        active
+      });
+
+    if (insertResult.error) {
+      showMessage(insertResult.error.message, true);
+      return;
+    }
+
+    logoForm.reset();
+    document.getElementById("logoActiveInput").checked = true;
+    showMessage("Logo uploaded.", false);
+    await loadLogos();
   }
 
   async function uploadSlide(event) {
@@ -302,6 +418,45 @@
     await loadSlides();
   }
 
+  async function toggleLogo(logo) {
+    const { error } = await supabaseClient
+      .from("ad_board_logos")
+      .update({ active: !logo.active })
+      .eq("id", logo.id);
+
+    if (error) {
+      showMessage(error.message, true);
+      return;
+    }
+
+    await loadLogos();
+  }
+
+  async function deleteLogo(logo) {
+    const confirmed = window.confirm("Delete this logo?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    const deleteRecord = await supabaseClient
+      .from("ad_board_logos")
+      .delete()
+      .eq("id", logo.id);
+
+    if (deleteRecord.error) {
+      showMessage(deleteRecord.error.message, true);
+      return;
+    }
+
+    await supabaseClient.storage
+      .from(config.storageBucket)
+      .remove([logo.image_path]);
+
+    showMessage("Logo deleted.", false);
+    await loadLogos();
+  }
+
   async function signIn(event) {
     event.preventDefault();
 
@@ -336,8 +491,10 @@
     supabaseClient = window.supabase.createClient(config.url, config.anonKey);
     loginForm.addEventListener("submit", signIn);
     slideForm.addEventListener("submit", uploadSlide);
+    logoForm.addEventListener("submit", uploadLogo);
     signOutButton.addEventListener("click", signOut);
     refreshButton.addEventListener("click", loadSlides);
+    refreshLogosButton.addEventListener("click", loadLogos);
     setSignedInState();
   }
 

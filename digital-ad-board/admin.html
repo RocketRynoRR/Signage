@@ -76,11 +76,38 @@
         </section>
 
         <section class="panel">
+          <h2>Add Logo</h2>
+          <form id="logoForm" class="form-grid">
+            <label>
+              Logo Image
+              <input id="logoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" required>
+            </label>
+            <label>
+              Logo Name
+              <input id="logoNameInput" type="text" maxlength="80" placeholder="Main logo">
+            </label>
+            <label class="checkbox-label">
+              <input id="logoActiveInput" type="checkbox" checked>
+              Active on display
+            </label>
+            <button class="button primary" type="submit">Upload Logo</button>
+          </form>
+        </section>
+
+        <section class="panel">
           <div class="panel-title-row">
             <h2>Slides</h2>
             <button id="refreshButton" class="button ghost" type="button">Refresh</button>
           </div>
           <div id="slideList" class="slide-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title-row">
+            <h2>Logos</h2>
+            <button id="refreshLogosButton" class="button ghost" type="button">Refresh</button>
+          </div>
+          <div id="logoList" class="logo-list"></div>
         </section>
       </section>
 
