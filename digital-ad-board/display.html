@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Digital Ad Board Display</title>
+    <link rel="stylesheet" href="assets/css/ad-board.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body class="display-page">
+    <main id="slideshow" class="slideshow" aria-live="polite">
+      <section class="display-empty" id="emptyState">
+        <h1>Digital Ad Board</h1>
+        <p>No active slides are ready yet.</p>
+      </section>
+
+      <img id="slideImage" class="slide-image" alt="">
+
+      <section id="slideOverlay" class="slide-overlay overlay-bottom">
+        <p id="slideHeader" class="slide-header"></p>
+        <p id="slideCaption" class="slide-caption"></p>
+      </section>
+
+      <section id="statusBanner" class="status-banner" hidden></section>
+    </main>
+
+    <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/display.js"></script>
+  </body>
+</html>
