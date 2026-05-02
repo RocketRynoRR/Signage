@@ -35,6 +35,8 @@
   let currentIndex = -1;
   let timerId;
   let exitSequence = "";
+  let currentBoxScale = 0.86;
+  let brandPalette = ["#0f766e", "#073b36", "#f6b453"];
 
   function showStatus(message) {
     statusBanner.textContent = message;
@@ -73,34 +75,13 @@
   }
 
   function setRandomBoardStyle() {
+    setRandomBoardColours();
     slideFrame.classList.remove(...boardStyleClasses);
     slideFrame.classList.add(pickRandom(boardStyleClasses));
   }
 
-  function setRandomImageBox() {
-    const boxOptions = [
-      { width: "62vw", height: "62vh" },
-      { width: "70vw", height: "66vh" },
-      { width: "78vw", height: "70vh" },
-      { width: "86vw", height: "76vh" },
-      { width: "92vw", height: "82vh" }
-    ];
-    const box = pickRandom(boxOptions);
-
-    slideImageBox.style.setProperty("--slide-box-width", box.width);
-    slideImageBox.style.setProperty("--slide-box-height", box.height);
-  }
-
-  function applyBoardColours(settings) {
-    if (!settings) {
-      return;
-    }
-
-    const palette = normalizeColours(settings.brand_colours || [
-      settings.brand_primary,
-      settings.brand_secondary,
-      settings.brand_accent
-    ]);
+  function setRandomBoardColours() {
+    const palette = normalizeColours(brandPalette);
     const primary = pickRandom(palette);
     const secondary = pickRandom(palette);
     const accent = pickRandom(palette);
@@ -108,6 +89,36 @@
     document.documentElement.style.setProperty("--brand-matte", primary);
     document.documentElement.style.setProperty("--brand-matte-dark", secondary);
     document.documentElement.style.setProperty("--brand-matte-warm", accent);
+  }
+
+  function setRandomImageBox() {
+    currentBoxScale = pickRandom([0.62, 0.7, 0.78, 0.84, 0.9]);
+    applySafeImageBox();
+  }
+
+  function applySafeImageBox() {
+    const safeMarginX = Math.max(88, Math.round(window.innerWidth * 0.1));
+    const safeMarginY = Math.max(130, Math.round(window.innerHeight * 0.22));
+    const availableWidth = Math.max(220, window.innerWidth - safeMarginX);
+    const availableHeight = Math.max(220, window.innerHeight - safeMarginY);
+    const boxWidth = Math.floor(availableWidth * currentBoxScale);
+    const boxHeight = Math.floor(availableHeight * currentBoxScale);
+
+    slideImageBox.style.setProperty("--slide-box-width", `${boxWidth}px`);
+    slideImageBox.style.setProperty("--slide-box-height", `${boxHeight}px`);
+  }
+
+  function applyBoardColours(settings) {
+    if (!settings) {
+      return;
+    }
+
+    brandPalette = normalizeColours(settings.brand_colours || [
+      settings.brand_primary,
+      settings.brand_secondary,
+      settings.brand_accent
+    ]);
+    setRandomBoardColours();
   }
 
   function getPublicImageUrl(imagePath) {
@@ -129,6 +140,7 @@
     slideLogo.classList.remove("is-visible");
 
     window.setTimeout(() => {
+      slideImage.onload = applySafeImageBox;
       slideImage.src = imageUrl;
       slideImage.alt = header || caption || "Advert slide";
       slideHeader.textContent = header;
@@ -251,6 +263,7 @@
       }
     });
 
+    window.addEventListener("resize", applySafeImageBox);
   }
 
   async function init() {
