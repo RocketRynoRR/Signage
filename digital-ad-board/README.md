@@ -71,7 +71,7 @@ The display page also shuffles the active slides each time it loops through the 
 
 Images are shown inside a branded matte/frame so the full image is always visible and never cropped.
 
-Slides with matching tags can be shown together. For example, if several slides use the tag `stickers`, the display page can randomly show 1 to 3 sticker images on the screen at once.
+Slides with matching tags can be shown together. Use the Tags page to add a tag header, tag caption, overlay style, and the minimum/maximum number of images. For example, if several slides use the tag `stickers`, the display page can randomly show 2 to 6 sticker images together and use the tag caption instead of the individual slide captions.
 
 Board colours can be added, removed, and saved in the admin Settings view. The display page uses those saved colours and randomly switches between several board background styles, including angled bands, bubbles, stripes, dashes, waves, confetti, and checks.
 

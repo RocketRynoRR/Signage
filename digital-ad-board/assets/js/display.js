@@ -35,6 +35,7 @@
   let supabaseClient;
   let slides = [];
   let logos = [];
+  let tagSettings = [];
   let currentIndex = -1;
   let timerId;
   let exitSequence = "";
@@ -42,6 +43,7 @@
   let currentOverlayClass = "overlay-bottom";
   let currentImageZone = null;
   let currentSlideSet = [];
+  let currentTagSetting = null;
 
   function showStatus(message) {
     statusBanner.textContent = message;
@@ -312,73 +314,81 @@
     const padding = Math.max(18, window.innerWidth * 0.014);
     const logoVisible = slideLogo.classList.contains("is-visible");
     const logoRect = logoVisible ? getPaddedRect(slideLogo, padding) : null;
-
-    if (logoRect && rectsOverlap(getPaddedRect(slideOverlay, padding), logoRect)) {
-      slideOverlay.classList.add("logo-avoid-left");
-    }
-
-    let overlayRect = getPaddedRect(slideOverlay, padding);
-    const imageRect = getPaddedRect(getActiveImageElement(), padding);
-    let imageOverlapRatio = getOverlapArea(overlayRect, imageRect) / getRectArea(imageRect);
-
-    if (imageOverlapRatio > 0.2) {
-      moveCaptionAwayFromImage(imageRect, logoRect);
-      overlayRect = getPaddedRect(slideOverlay, padding);
-      imageOverlapRatio = getOverlapArea(overlayRect, imageRect) / getRectArea(imageRect);
-    }
-
-    if (imageOverlapRatio > 0 && imageOverlapRatio <= 0.2) {
-      slideOverlay.classList.add("caption-over-image");
-    }
+    const placed = placeCaptionWithoutOverlap(logoRect, padding);
+    slideOverlay.classList.toggle("is-visible", placed);
   }
 
   function getActiveImageElement() {
     return slideGroup.hidden ? slideImageBox : slideGroup;
   }
 
-  function moveCaptionAwayFromImage(imageRect, logoRect) {
+  function getActiveImageRects(padding) {
+    if (slideGroup.hidden) {
+      return [getPaddedRect(slideImageBox, padding)];
+    }
+
+    return [...slideGroup.querySelectorAll(".slide-group-card")]
+      .map((card) => getPaddedRect(card, padding));
+  }
+
+  function rectIsInsideViewport(rect, margin) {
+    return rect.left >= margin &&
+      rect.top >= margin &&
+      rect.right <= window.innerWidth - margin &&
+      rect.bottom <= window.innerHeight - margin;
+  }
+
+  function placeCaptionWithoutOverlap(logoRect, padding) {
     const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    const previousClasses = overlayClasses.filter((className) =>
+      slideOverlay.classList.contains(className)
+    );
+    slideOverlay.classList.remove(...overlayClasses);
+    slideOverlay.style.maxWidth = `${Math.round(Math.min(760, window.innerWidth - margin * 2))}px`;
+    slideOverlay.style.right = "auto";
+    slideOverlay.style.bottom = "auto";
+    slideOverlay.style.transform = "none";
     const overlayRect = slideOverlay.getBoundingClientRect();
+    const imageRects = getActiveImageRects(padding);
     const candidates = [
       { left: margin, top: margin },
       { left: window.innerWidth - overlayRect.width - margin, top: margin },
       { left: margin, top: window.innerHeight - overlayRect.height - margin },
       { left: window.innerWidth - overlayRect.width - margin, top: window.innerHeight - overlayRect.height - margin },
       { left: (window.innerWidth - overlayRect.width) / 2, top: margin },
-      { left: (window.innerWidth - overlayRect.width) / 2, top: window.innerHeight - overlayRect.height - margin }
+      { left: (window.innerWidth - overlayRect.width) / 2, top: window.innerHeight - overlayRect.height - margin },
+      { left: margin, top: (window.innerHeight - overlayRect.height) / 2 },
+      { left: window.innerWidth - overlayRect.width - margin, top: (window.innerHeight - overlayRect.height) / 2 }
     ];
 
-    let bestCandidate = null;
-    let bestOverlap = Number.POSITIVE_INFINITY;
-
-    candidates.forEach((candidate) => {
+    for (const candidate of candidates) {
+      const left = clamp(candidate.left, margin, window.innerWidth - overlayRect.width - margin);
+      const top = clamp(candidate.top, margin, window.innerHeight - overlayRect.height - margin);
       const rect = {
-        left: candidate.left,
-        top: candidate.top,
-        right: candidate.left + overlayRect.width,
-        bottom: candidate.top + overlayRect.height,
+        left,
+        top,
+        right: left + overlayRect.width,
+        bottom: top + overlayRect.height,
         width: overlayRect.width,
         height: overlayRect.height
       };
       const touchesLogo = logoRect && rectsOverlap(rect, logoRect);
-      const overlap = getOverlapArea(rect, imageRect);
+      const touchesImage = imageRects.some((imageRect) => rectsOverlap(rect, imageRect));
 
-      if (!touchesLogo && overlap < bestOverlap) {
-        bestOverlap = overlap;
-        bestCandidate = candidate;
+      if (!touchesLogo && !touchesImage && rectIsInsideViewport(rect, margin)) {
+        slideOverlay.classList.add(...previousClasses);
+        slideOverlay.style.left = `${Math.round(left)}px`;
+        slideOverlay.style.top = `${Math.round(top)}px`;
+        slideOverlay.style.right = "auto";
+        slideOverlay.style.bottom = "auto";
+        slideOverlay.style.transform = "none";
+        return true;
       }
-    });
-
-    if (!bestCandidate) {
-      return;
     }
 
-    slideOverlay.classList.remove(...overlayClasses);
-    slideOverlay.style.left = `${Math.round(clamp(bestCandidate.left, margin, window.innerWidth - overlayRect.width - margin))}px`;
-    slideOverlay.style.top = `${Math.round(clamp(bestCandidate.top, margin, window.innerHeight - overlayRect.height - margin))}px`;
-    slideOverlay.style.right = "auto";
-    slideOverlay.style.bottom = "auto";
-    slideOverlay.style.transform = "none";
+    slideOverlay.classList.add(...previousClasses);
+    slideOverlay.removeAttribute("style");
+    return false;
   }
 
   function resolveLayoutCollisions() {
@@ -410,11 +420,15 @@
   }
 
   function showSlide(slide) {
-    const slideSet = pickRelatedSlides(slide);
+    const selection = pickRelatedSlides(slide);
+    const slideSet = selection.slides;
+    const isTagGroup = slideSet.length > 1 && selection.tagSetting;
     currentSlideSet = slideSet;
+    currentTagSetting = selection.tagSetting;
     const imageUrl = getPublicImageUrl(slide.image_path);
-    const header = slide.header || "";
-    const caption = slide.caption || "";
+    const header = isTagGroup ? (selection.tagSetting.header || "") : (slide.header || "");
+    const caption = isTagGroup ? (selection.tagSetting.caption || "") : (slide.caption || "");
+    const overlayStyle = isTagGroup ? selection.tagSetting.overlay_style : slide.overlay_style;
     const logo = logos.length ? logos[0] : null;
 
     slideOverlay.classList.remove("is-visible");
@@ -438,7 +452,7 @@
       slideHeader.textContent = header;
       slideCaption.textContent = caption;
       setRandomBoardStyle();
-      const overlayClass = setOverlayStyle(slide.overlay_style);
+      const overlayClass = setOverlayStyle(overlayStyle);
       if (slideSet.length > 1) {
         positionSlideGroup(overlayClass);
       } else {
@@ -459,23 +473,43 @@
 
   function pickRelatedSlides(slide) {
     const tags = getSlideTags(slide);
+    const matchingTags = shuffle(tagSettings.filter((setting) =>
+      setting.active && tags.includes(setting.tag)
+    ));
 
-    if (!tags.length || Math.random() > 0.55) {
-      return [slide];
+    if (!matchingTags.length || Math.random() > 0.65) {
+      return { slides: [slide], tagSetting: null };
     }
 
-    const tag = pickRandom(tags);
+    const tagSetting = matchingTags[0];
     const related = shuffle(slides.filter((candidate) =>
-      candidate.id !== slide.id && getSlideTags(candidate).includes(tag)
+      candidate.id !== slide.id && getSlideTags(candidate).includes(tagSetting.tag)
     ));
-    const count = Math.min(3, 1 + related.length, pickRandom([2, 2, 3]));
+    const availableCount = 1 + related.length;
 
-    return [slide, ...related.slice(0, count - 1)];
+    if (availableCount < 2) {
+      return { slides: [slide], tagSetting: null };
+    }
+
+    const minImages = clamp(Number(tagSetting.min_images || 2), 2, 6);
+    const maxImages = clamp(Number(tagSetting.max_images || 6), minImages, 6);
+    const count = Math.min(availableCount, Math.round(randomBetween(minImages, maxImages)));
+
+    return {
+      slides: [slide, ...related.slice(0, count - 1)],
+      tagSetting
+    };
   }
 
   function renderSlideGroup(slideSet) {
     slideGroup.innerHTML = "";
-    slideGroup.classList.remove("group-count-2", "group-count-3");
+    slideGroup.classList.remove(
+      "group-count-2",
+      "group-count-3",
+      "group-count-4",
+      "group-count-5",
+      "group-count-6"
+    );
     slideGroup.classList.add(`group-count-${slideSet.length}`);
 
     slideSet.forEach((slide) => {
@@ -494,21 +528,28 @@
   }
 
   function positionSlideGroup(overlayClass) {
+    const margin = Math.max(28, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.035));
+    const count = currentSlideSet.length || 2;
+    const logoReserve = slideLogo.classList.contains("is-visible")
+      ? slideLogo.getBoundingClientRect().width + margin * 2
+      : Math.max(230, window.innerWidth * 0.15);
+    const maxWidth = Math.max(window.innerWidth * 0.62, window.innerWidth - margin * 2 - logoReserve * 0.35);
+    const maxHeight = window.innerHeight - margin * 2;
+    const targetArea = window.innerWidth * window.innerHeight * 0.8;
+    const groupRatio = count <= 2 ? 16 / 7 : count <= 4 ? 16 / 10 : 16 / 9;
+    let width = Math.min(maxWidth, Math.sqrt(targetArea * groupRatio));
+    let height = Math.min(maxHeight, width / groupRatio);
+
+    width = Math.min(maxWidth, height * groupRatio);
+    height = Math.min(maxHeight, width / groupRatio);
+
+    slideGroup.style.width = `${Math.round(width)}px`;
+    slideGroup.style.height = `${Math.round(height)}px`;
     slideGroup.style.left = "50%";
     slideGroup.style.top = "50%";
 
     if (overlayClass === "overlay-bottom") {
-      slideGroup.style.top = "43%";
-    }
-
-    if (overlayClass === "overlay-top-left") {
-      slideGroup.style.left = "58%";
-      slideGroup.style.top = "54%";
-    }
-
-    if (overlayClass === "overlay-minimal") {
-      slideGroup.style.left = "46%";
-      slideGroup.style.top = "46%";
+      slideGroup.style.top = "44%";
     }
   }
 
@@ -599,6 +640,22 @@
     }
   }
 
+  async function loadTagSettings() {
+    const { data, error } = await supabaseClient
+      .from("ad_board_tags")
+      .select("*")
+      .eq("active", true)
+      .order("tag", { ascending: true });
+
+    if (error) {
+      tagSettings = [];
+      showStatus("Slides loaded, but tag settings could not load.");
+      return;
+    }
+
+    tagSettings = data || [];
+  }
+
   function exitToAdmin() {
     window.location.href = "admin.html";
   }
@@ -622,7 +679,11 @@
     });
 
     window.addEventListener("resize", () => {
-      applySafeImageBox();
+      if (slideGroup.hidden) {
+        applySafeImageBox();
+      } else {
+        positionSlideGroup(currentOverlayClass);
+      }
       resolveLayoutCollisions();
     });
   }
@@ -637,10 +698,12 @@
     setupHiddenExitControls();
     setRandomBoardStyle();
     await loadBoardSettings();
+    await loadTagSettings();
     await loadLogos();
     await loadSlides();
     window.setInterval(async () => {
       await loadBoardSettings();
+      await loadTagSettings();
       await loadLogos();
       await loadSlides();
     }, 5 * 60 * 1000);

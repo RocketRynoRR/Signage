@@ -106,6 +106,7 @@
         loadBoardSettings(),
         loadTags()
       ]);
+      showAdminView(getViewFromHash(), false);
     }
   }
 
@@ -355,7 +356,7 @@
       minInput.name = "min_images";
       minInput.type = "number";
       minInput.min = 1;
-      minInput.max = 3;
+      minInput.max = 6;
       minInput.value = tag.min_images || 1;
       minLabel.appendChild(minInput);
 
@@ -365,8 +366,8 @@
       maxInput.name = "max_images";
       maxInput.type = "number";
       maxInput.min = 1;
-      maxInput.max = 3;
-      maxInput.value = tag.max_images || 3;
+      maxInput.max = 6;
+      maxInput.value = tag.max_images || 6;
       maxLabel.appendChild(maxInput);
       row.append(minLabel, maxLabel);
 
@@ -622,7 +623,12 @@
     headerLogoPreview.hidden = false;
   }
 
-  function showAdminView(viewName) {
+  function getViewFromHash() {
+    const viewName = window.location.hash.replace("#", "");
+    return ["slides", "tags", "settings"].includes(viewName) ? viewName : "slides";
+  }
+
+  function showAdminView(viewName, updateHash = true) {
     const showSettings = viewName === "settings";
     const showTags = viewName === "tags";
 
@@ -645,13 +651,17 @@
     if (showTags) {
       loadTags();
     }
+
+    if (updateHash && window.location.hash !== `#${viewName}`) {
+      window.location.hash = viewName;
+    }
   }
 
   function getTagPayload(formData) {
     let minImages = Number(formData.get("min_images") || 1);
-    let maxImages = Number(formData.get("max_images") || 3);
-    minImages = Math.min(Math.max(minImages, 1), 3);
-    maxImages = Math.min(Math.max(maxImages, 1), 3);
+    let maxImages = Number(formData.get("max_images") || 6);
+    minImages = Math.min(Math.max(minImages, 1), 6);
+    maxImages = Math.min(Math.max(maxImages, 1), 6);
 
     if (minImages > maxImages) {
       maxImages = minImages;
@@ -689,8 +699,8 @@
 
     if (!tagId && tagForm) {
       tagForm.reset();
-      document.getElementById("tagMinImagesInput").value = 1;
-      document.getElementById("tagMaxImagesInput").value = 3;
+      document.getElementById("tagMinImagesInput").value = 2;
+      document.getElementById("tagMaxImagesInput").value = 6;
       document.getElementById("tagOverlayInput").value = "random";
       document.getElementById("tagActiveInput").checked = true;
     }
@@ -967,13 +977,17 @@
     safeOn(loginForm, "submit", signIn);
     safeOn(slideForm, "submit", uploadSlide);
     safeOn(logoForm, "submit", uploadLogo);
+    safeOn(tagForm, "submit", (event) => saveTag(event, null));
     safeOn(boardSettingsForm, "submit", saveBoardSettings);
     safeOn(addBrandColourButton, "click", addBrandColour);
     safeOn(signOutButton, "click", signOut);
     safeOn(slidesViewButton, "click", () => showAdminView("slides"));
+    safeOn(tagsViewButton, "click", () => showAdminView("tags"));
     safeOn(settingsViewButton, "click", () => showAdminView("settings"));
+    safeOn(window, "hashchange", () => showAdminView(getViewFromHash(), false));
     safeOn(refreshButton, "click", loadSlides);
     safeOn(refreshLogosButton, "click", loadLogos);
+    safeOn(refreshTagsButton, "click", loadTags);
     setSignedInState();
   }
 

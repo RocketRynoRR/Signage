@@ -46,15 +46,39 @@ create table if not exists public.ad_board_tags (
   caption text,
   overlay_style text not null default 'random'
     check (overlay_style in ('bottom', 'top-left', 'center', 'minimal', 'random')),
-  min_images integer not null default 1
-    check (min_images between 1 and 3),
-  max_images integer not null default 3
-    check (max_images between 1 and 3),
+  min_images integer not null default 2
+    check (min_images between 1 and 6),
+  max_images integer not null default 6
+    check (max_images between 1 and 6),
   active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint ad_board_tags_image_range check (min_images <= max_images)
 );
+
+alter table public.ad_board_tags
+alter column min_images set default 2;
+
+alter table public.ad_board_tags
+alter column max_images set default 6;
+
+alter table public.ad_board_tags
+drop constraint if exists ad_board_tags_min_images_check;
+
+alter table public.ad_board_tags
+drop constraint if exists ad_board_tags_max_images_check;
+
+alter table public.ad_board_tags
+drop constraint if exists ad_board_tags_image_range;
+
+alter table public.ad_board_tags
+add constraint ad_board_tags_min_images_check check (min_images between 1 and 6);
+
+alter table public.ad_board_tags
+add constraint ad_board_tags_max_images_check check (max_images between 1 and 6);
+
+alter table public.ad_board_tags
+add constraint ad_board_tags_image_range check (min_images <= max_images);
 
 alter table public.ad_board_settings
 add column if not exists brand_colours jsonb not null default '["#0f766e", "#073b36", "#f6b453"]'::jsonb;

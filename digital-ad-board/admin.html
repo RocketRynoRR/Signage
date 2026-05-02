@@ -146,29 +146,29 @@
             <form id="tagForm" class="form-grid">
               <label>
                 Tag
-                <input id="tagNameInput" type="text" maxlength="80" placeholder="stickers" required>
+                <input id="tagNameInput" name="tag" type="text" maxlength="80" placeholder="stickers" required>
               </label>
               <label>
                 Header
-                <input id="tagHeaderInput" type="text" maxlength="120" placeholder="Die Cut Stickers">
+                <input id="tagHeaderInput" name="header" type="text" maxlength="120" placeholder="Die Cut Stickers">
               </label>
               <label>
                 Caption
-                <textarea id="tagCaptionInput" maxlength="280" rows="3" placeholder="Premium quality vinyl."></textarea>
+                <textarea id="tagCaptionInput" name="caption" maxlength="280" rows="3" placeholder="Premium quality vinyl."></textarea>
               </label>
               <div class="form-row">
                 <label>
                   Min Images
-                  <input id="tagMinImagesInput" type="number" min="1" max="3" value="1">
+                  <input id="tagMinImagesInput" name="min_images" type="number" min="1" max="6" value="2">
                 </label>
                 <label>
                   Max Images
-                  <input id="tagMaxImagesInput" type="number" min="1" max="3" value="3">
+                  <input id="tagMaxImagesInput" name="max_images" type="number" min="1" max="6" value="6">
                 </label>
               </div>
               <label>
                 Overlay
-                <select id="tagOverlayInput">
+                <select id="tagOverlayInput" name="overlay_style">
                   <option value="random" selected>Random Each Time</option>
                   <option value="bottom">Bottom Bar</option>
                   <option value="top-left">Top Left</option>
@@ -177,7 +177,7 @@
                 </select>
               </label>
               <label class="checkbox-label">
-                <input id="tagActiveInput" type="checkbox" checked>
+                <input id="tagActiveInput" name="active" type="checkbox" checked>
                 Active
               </label>
               <button class="button primary" type="submit">Save Tag</button>
